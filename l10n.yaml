@@ -3,3 +3,5 @@ template-arb-file: app_en.arb
 output-localization-file: app_localizations.dart
 # Write into lib/ so `package:sorade/l10n/app_localizations.dart` exists for all platforms (Windows, etc.).
 output-dir: lib/l10n
+# Required so files land under output-dir; otherwise Flutter only writes under .dart_tool/flutter_gen.
+synthetic-package: false
