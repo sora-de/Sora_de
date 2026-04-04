@@ -65,6 +65,28 @@ jobs:
 
       - run: flutter pub get
 
+      # Same signing key as local release builds → sideload updates install over existing app.
+      # Optional secrets: ANDROID_KEYSTORE_BASE64 (base64 of upload-keystore.jks), ANDROID_STORE_PASSWORD,
+      # ANDROID_KEY_PASSWORD, ANDROID_KEY_ALIAS (e.g. upload). If unset, CI uses its debug keystore (conflicts with phone installs from another machine).
+      - name: Configure Android release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -z "${ANDROID_KEYSTORE_BASE64}" ]; then
+            echo "::notice::No release keystore secrets — APK signed with CI debug key. Uninstall the app before sideloading, or add ANDROID_* signing secrets."
+            exit 0
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/upload-keystore.jks
+          printf '%s\n' \
+            "storePassword=${ANDROID_STORE_PASSWORD}" \
+            "keyPassword=${ANDROID_KEY_PASSWORD}" \
+            "keyAlias=${ANDROID_KEY_ALIAS}" \
+            "storeFile=upload-keystore.jks" \
+            > android/key.properties
+
       - run: flutter build apk --release
 
       - name: Stage APK for release

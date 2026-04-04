@@ -78,6 +78,28 @@ The tag **must** match the rule: for `1.0.1+2` use tag **`v1.0.1-2`** (replace `
 
 **Actions → Android release APK → Run workflow** (uses `pubspec.yaml` on the selected branch; creates the same tag/release if it does not exist).
 
+### Same signing key everywhere (fix “package conflicts” on install)
+
+If release APKs are signed with **different keys** (e.g. GitHub Actions debug keystore vs your PC), Android shows **App not installed as package conflicts with an existing package** when updating over an existing install.
+
+1. Create one upload keystore (once), e.g. in `android/`:
+   ```bash
+   keytool -genkey -v -keystore android/upload-keystore.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+   ```
+2. Add **`android/key.properties`** (already gitignored):
+   ```properties
+   storePassword=<your store password>
+   keyPassword=<your key password>
+   keyAlias=upload
+   storeFile=upload-keystore.jks
+   ```
+3. Build locally: `flutter build apk --release` — Gradle picks up `key.properties` automatically.
+4. For **GitHub Actions**, add repository **secrets** (do not commit the `.jks` file):
+   - `ANDROID_KEYSTORE_BASE64` — base64 of `upload-keystore.jks` (e.g. `base64 -w0 android/upload-keystore.jks` on Linux, or PowerShell `[Convert]::ToBase64String([IO.File]::ReadAllBytes('android/upload-keystore.jks'))`).
+   - `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_PASSWORD`, `ANDROID_KEY_ALIAS` (e.g. `upload`).
+
+Until those secrets exist, CI builds use the runner’s **debug** key — **uninstall** the app on the device once, then install the CI APK; or add the secrets so CI matches your keystore.
+
 ## 5. Users install updates
 
 They open **Account & settings → App update → Download update** (Android), or open the Release page and download `sorade-android.apk`. They may need to allow **Install unknown apps** for the browser or Files app.
