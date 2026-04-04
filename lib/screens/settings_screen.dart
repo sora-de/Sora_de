@@ -385,52 +385,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
             ),
           ),
-          const SizedBox(height: 8),
-          Card(
-            child: ExpansionTile(
-              leading: Icon(Icons.rocket_launch_outlined, color: cs.primary),
-              title: Text(
-                'Publishing an Android update',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              subtitle: Text(
-                'Build APK, HTTPS link, Firestore, user install',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
-              ),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: SelectableText(
-                    '1. Build\n'
-                    'Run: flutter build apk --release\n'
-                    'APK: build/app/outputs/flutter-apk/app-release.apk\n\n'
-                    '2. Host the file (free options)\n'
-                    '• GitHub: create a Release on your repo and attach the .apk; copy the direct download link.\n'
-                    '• Firebase Storage: upload the file and use a public download URL.\n'
-                    '• Any HTTPS URL that starts the .apk download when opened in a browser.\n\n'
-                    '3. Point the app at it\n'
-                    'In Firestore, collection app_config, document android:\n'
-                    '• latestBuildNumber (number) — must be greater than the installed build (pubspec version after +, e.g. 1.0.1+3 → use 3 or higher).\n'
-                    '• downloadUrl (string) — the HTTPS link from step 2.\n'
-                    'Optional: versionLabel, releaseNotes.\n'
-                    'Deploy firestore.rules so signed-in users can read app_config.\n\n'
-                    '4. First-time install / updates from the browser\n'
-                    'Android may block installs until the user allows “Install unknown apps” (or “Install apps from this source”) for the browser or Files app they use. After downloading, open the APK from notifications or Downloads and tap Install.\n\n'
-                    '5. Automate with GitHub Actions (optional)\n'
-                    'This repo includes .github/workflows/android_release.yml. Bump version in pubspec.yaml (e.g. 1.0.2+8), commit, then either run the workflow manually (Actions tab) or push a git tag that matches: for 1.0.2+8 use tag v1.0.2-8. The workflow builds the APK, creates a GitHub Release with sorade-android.apk, and can update Firestore if you add the secret FIREBASE_SERVICE_ACCOUNT_JSON (Firebase service account with Firestore access). Enable Actions workflow “Read and write” permissions in the repo settings.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          height: 1.45,
-                          color: cs.onSurface,
-                        ),
-                  ),
-                ),
-              ],
-            ),
-          ),
           const SizedBox(height: 28),
           Text(
             'Change password',
