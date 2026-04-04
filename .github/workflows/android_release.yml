@@ -98,19 +98,22 @@ jobs:
           echo "download_url=$url" >> "$GITHUB_OUTPUT"
           echo "APK URL: $url"
 
+      # secrets.* cannot be used in step `if:` (GitHub restriction). Skip inside the script when unset.
       - uses: actions/setup-node@v4
-        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON != '' }}
         with:
           node-version: '20'
 
       - name: Update Firestore app_config/android
-        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON != '' }}
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           APK_DOWNLOAD_URL: ${{ steps.apk.outputs.download_url }}
           LATEST_BUILD_NUMBER: ${{ steps.meta.outputs.build_number }}
           VERSION_LABEL: ${{ steps.meta.outputs.version_name }}
         run: |
+          if [ -z "${FIREBASE_SERVICE_ACCOUNT_JSON}" ]; then
+            echo "::notice::Skipping Firestore update (add secret FIREBASE_SERVICE_ACCOUNT_JSON to enable)."
+            exit 0
+          fi
           npm install firebase-admin@12.7.0 --no-save
           export RELEASE_NOTES="$(git log -1 --pretty=%B | head -c 2000)"
           node tool/ci/update_firestore_app_config.cjs
