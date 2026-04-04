@@ -51,7 +51,7 @@ ThemeData buildSoraDeTheme() {
       foregroundColor: BrandColors.primaryGreen,
       surfaceTintColor: BrandColors.primaryPink.withValues(alpha: 0.25),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       elevation: 0,
       color: BrandColors.softWhite,
       surfaceTintColor: BrandColors.primaryPink.withValues(alpha: 0.12),
@@ -127,7 +127,7 @@ ThemeData buildSoraDeTheme() {
       color: BrandColors.primaryGreen.withValues(alpha: 0.08),
       thickness: 1,
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: BrandColors.softWhite,
       surfaceTintColor: BrandColors.primaryPink.withValues(alpha: 0.08),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
