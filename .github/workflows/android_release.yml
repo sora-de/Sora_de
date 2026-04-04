@@ -124,4 +124,4 @@ jobs:
       - name: Firestore update hint
         if: steps.firestore_app_config.outcome == 'failure'
         run: |
-          echo "::warning::Firestore step failed (e.g. PERMISSION_DENIED / SERVICE_DISABLED). Enable **Cloud Firestore API** in Google Cloud Console for this Firebase project, wait a few minutes, then re-run the failed step or set app_config/android manually. See docs/DEPLOY_GITHUB_ANDROID.md"
+          echo "::warning::Firestore step failed. Common fixes: (1) Enable **Cloud Firestore API** in Google Cloud. (2) In Firebase Console → **Firestore** → **Create database** (Native mode) if you never did — NOT_FOUND often means no DB yet. (3) Service account JSON must be for the same project as the app. Set app_config/android manually if needed. See docs/DEPLOY_GITHUB_ANDROID.md"

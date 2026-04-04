@@ -38,6 +38,10 @@ So users see **Update available** after a release:
    - [API Library — Firestore](https://console.cloud.google.com/apis/library/firestore.googleapis.com) (pick your project, e.g. **sora-de**) → **Enable**.  
    - If CI shows `SERVICE_DISABLED`, use the `activationUrl` from the log or wait a few minutes after enabling.
 
+   **Create the Firestore database** (required; enabling the API alone is not enough):  
+   - [Firebase Console](https://console.firebase.google.com/) → your project → **Build → Firestore Database** → **Create database** → choose **production** or test mode and a region → finish.  
+   - If CI logs **`NOT_FOUND`** (gRPC 5) with an empty message, this step was usually skipped. The Admin SDK cannot write until a **Native mode** Firestore database exists.
+
 2. In **Google Cloud Console** (same project as Firebase), create a **service account** with a role that can write Firestore (e.g. **Cloud Datastore User** or **Firebase Admin**-style access via a custom role with `datastore.documents.*`).
 3. Create a **JSON key** for that account.
 4. In the GitHub repo: **Settings → Secrets and variables → Actions → New repository secret**  
