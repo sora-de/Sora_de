@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "442780655388",
+    "project_id": "sora-de",
+    "storage_bucket": "sora-de.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:442780655388:android:348cd1d924da32b22764d9",
+        "android_client_info": {
+          "package_name": "com.sorade.sorade"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZz14KnZCS8IqmaS8caD2gVaCI4YW382g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:442780655388:android:35de7c9b31b9ca052764d9",
+        "android_client_info": {
+          "package_name": "sorade.in"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZz14KnZCS8IqmaS8caD2gVaCI4YW382g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

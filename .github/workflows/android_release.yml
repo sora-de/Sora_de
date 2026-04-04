@@ -1,0 +1,116 @@
+# Builds a release APK and publishes a GitHub Release (asset: sorade-android.apk).
+#
+# Triggers
+#   • Push git tag vX.Y.Z-BUILD matching pubspec (e.g. pubspec 1.0.2+7 → tag v1.0.2-7)
+#   • Workflow dispatch — same tag derived from pubspec on the branch you run
+#
+# Repo: Settings → Actions → General → Workflow permissions → Read and write.
+#
+# Optional secret: FIREBASE_SERVICE_ACCOUNT_JSON — service account JSON with permission to
+# write Firestore (Admin SDK bypasses security rules). Updates app_config/android.
+#
+name: Android release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse pubspec version
+        id: meta
+        run: |
+          set -e
+          line=$(grep '^version:' pubspec.yaml | head -1 | tr -d '\r')
+          raw=$(echo "$line" | sed 's/^version:[[:space:]]*//')
+          name=$(echo "$raw" | cut -d'+' -f1)
+          build=$(echo "$raw" | cut -d'+' -f2)
+          if [ -z "$build" ] || [ "$build" = "$raw" ]; then
+            echo "pubspec version must include +buildNumber, e.g. 1.0.1+2" >&2
+            exit 1
+          fi
+          tag="v${name}-${build}"
+          echo "version_name=$name" >> "$GITHUB_OUTPUT"
+          echo "build_number=$build" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Parsed version $name build $build → release tag $tag"
+
+      - name: Verify git tag matches pubspec
+        if: github.ref_type == 'tag'
+        run: |
+          expected="${{ steps.meta.outputs.release_tag }}"
+          actual="${{ github.ref_name }}"
+          if [ "$actual" != "$expected" ]; then
+            echo "::error::Git tag '$actual' does not match pubspec. Expected tag '$expected' (from version in pubspec.yaml)."
+            exit 1
+          fi
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter build apk --release
+
+      - name: Stage APK for release
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk sorade-android.apk
+          ls -la sorade-android.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.release_tag }}
+          name: Sora de ${{ steps.meta.outputs.version_name }} (${{ steps.meta.outputs.build_number }})
+          body: |
+            **Version:** `${{ steps.meta.outputs.version_name }}`  
+            **Build:** `${{ steps.meta.outputs.build_number }}`
+
+            Download **sorade-android.apk** below. On Android, allow install from your browser or Files app if asked, then open the file.
+
+            **Firestore `downloadUrl` (copy into `app_config/android`):**
+            ```
+            https://github.com/${{ github.repository }}/releases/download/${{ steps.meta.outputs.release_tag }}/sorade-android.apk
+            ```
+          files: sorade-android.apk
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+
+      - name: Compute APK download URL
+        id: apk
+        run: |
+          url="https://github.com/${{ github.repository }}/releases/download/${{ steps.meta.outputs.release_tag }}/sorade-android.apk"
+          echo "download_url=$url" >> "$GITHUB_OUTPUT"
+          echo "APK URL: $url"
+
+      - uses: actions/setup-node@v4
+        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON != '' }}
+        with:
+          node-version: '20'
+
+      - name: Update Firestore app_config/android
+        if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON != '' }}
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          APK_DOWNLOAD_URL: ${{ steps.apk.outputs.download_url }}
+          LATEST_BUILD_NUMBER: ${{ steps.meta.outputs.build_number }}
+          VERSION_LABEL: ${{ steps.meta.outputs.version_name }}
+        run: |
+          npm install firebase-admin@12.7.0 --no-save
+          export RELEASE_NOTES="$(git log -1 --pretty=%B | head -c 2000)"
+          node tool/ci/update_firestore_app_config.cjs

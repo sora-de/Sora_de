@@ -1,0 +1,42 @@
+{
+  "@@locale": "en",
+  "appTitle": "Sora de",
+  "@appTitle": {
+    "description": "Application name"
+  },
+  "welcomeTagline": "Gifting & photobooth — inventory, orders, and profit in one place.",
+  "welcomeContinue": "Enter app",
+  "profitLabel": "Profit",
+  "profitNetGain": "Net gain",
+  "profitNetLoss": "Net loss",
+  "profitSemantic": "{status}, {amount}",
+  "@profitSemantic": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "reportsShareCsv": "Share month as CSV",
+  "reportsShareCsvSubject": "Sora de monthly report",
+  "reportsTrendTitle": "Last 6 months",
+  "reportsTrendRevenue": "Revenue",
+  "reportsTrendExpenses": "Expenses",
+  "reportsCsvSummary": "Summary",
+  "reportsCsvBreakdown": "Breakdown",
+  "reportsCsvInventoryUsage": "Inventory usage",
+  "reportsCsvFieldMetric": "Metric",
+  "reportsCsvFieldAmount": "Amount",
+  "reportsCsvFieldLabel": "Label",
+  "reportsCsvFieldUnits": "Units",
+  "shareCsvError": "Could not share file",
+  "dashboardTitle": "Sora de",
+  "dashboardSubtitle": "Booth-friendly overview",
+  "metricTodaysSales": "Today's sales",
+  "metricMonthlyRevenue": "Monthly revenue",
+  "metricMonthlyExpenses": "Monthly expenses",
+  "metricNetProfitLoss": "Net profit / loss"
+}

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%">
+  <rect width="1920" height="1080" fill="#faf3eb"/>
+
+  <path d="M0,0 L1200,0 C1000,300 600,150 0,600 Z" fill="#ffe4e8"/>
+  <path d="M0,0 L800,0 C600,200 300,100 0,400 Z" fill="#ffd1da" opacity="0.5"/>
+
+  <path d="M1920,1080 L600,1080 C900,800 1400,900 1920,300 Z" fill="#ffe4e8"/>
+  <path d="M1920,1080 L1000,1080 C1200,900 1600,950 1920,500 Z" fill="#ffd1da" opacity="0.6"/>
+
+  <path d="M0,700 C250,800 200,1080 0,1080 Z" fill="#ffe4e8"/>
+
+  <g fill="#faf3eb">
+    <path d="M150,300 a60,60 0 0,1 60,-60 a80,80 0 0,1 140,-10 a70,70 0 0,1 120,30 a50,50 0 0,1 10,90 l-330,0 a50,50 0 0,1 0,-50 z"/>
+    <path d="M1600,850 a40,40 0 0,1 40,-40 a60,60 0 0,1 100,-10 a50,50 0 0,1 90,20 a30,30 0 0,1 10,60 l-240,0 a30,30 0 0,1 0,-30 z" opacity="0.9"/>
+  </g>
+
+  <defs>
+    <g id="shutter" fill="none" stroke="#e8dacb" stroke-width="8" stroke-linejoin="round">
+      <circle cx="0" cy="0" r="80"/>
+      <path d="M-40,-69 L-15,-20 M40,-69 L15,-20 M75,-25 L35,-5 M75,25 L35,5 M40,69 L15,20 M-40,69 L-15,20 M-75,25 L-35,5 M-75,-25 L-35,-5"/>
+      <circle cx="0" cy="0" r="30"/>
+    </g>
+  </defs>
+
+  <use href="#shutter" x="1700" y="200" opacity="0.6" transform="rotate(15 1700 200) scale(0.8)"/>
+  <use href="#shutter" x="250" y="850" opacity="0.6" transform="rotate(-20 250 850) scale(0.6)"/>
+  <use href="#shutter" x="1500" y="900" opacity="0.4" transform="rotate(45 1500 900) scale(0.9)"/>
+  <use href="#shutter" x="150" y="150" opacity="0.4" transform="rotate(-10 150 150) scale(0.5)"/>
+</svg>
