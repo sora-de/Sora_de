@@ -366,6 +366,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 contentPadding: EdgeInsets.zero,
                                 leading: Icon(Icons.check_circle_outline, color: cs.primary),
                                 title: const Text('You’re on the latest version'),
+                                subtitle: Text(
+                                  'This device: build ${_versionSnap!.currentBuild}. '
+                                  'Server: build ${_versionSnap!.remote!.latestBuildNumber}. '
+                                  'An update only appears when the server build is higher.',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: cs.onSurfaceVariant,
+                                        height: 1.35,
+                                      ),
+                                ),
                               ),
                             ] else if (_isAndroid) ...[
                               const Divider(),

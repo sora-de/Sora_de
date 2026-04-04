@@ -53,16 +53,25 @@ class AppUpdateService {
   /// - `downloadUrl` (string) — direct HTTPS link to the `.apk` file
   /// - `versionLabel` (string, optional) — e.g. "1.0.2" for display
   /// - `releaseNotes` (string, optional)
+  static int? _parseBuildNumber(Object? v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is double) return v.round();
+    if (v is String) return int.tryParse(v.trim());
+    return int.tryParse(v.toString());
+  }
+
   static Future<AppRemoteRelease?> fetchAndroidRelease() async {
     final snap = await _doc.get();
     if (!snap.exists) return null;
     final data = snap.data();
     if (data == null) return null;
-    final build = data['latestBuildNumber'];
-    final url = data['downloadUrl'] as String?;
-    if (build is! num || url == null || url.isEmpty) return null;
+    final build = _parseBuildNumber(data['latestBuildNumber']);
+    final rawUrl = data['downloadUrl'];
+    final url = rawUrl is String ? rawUrl.trim() : rawUrl?.toString().trim();
+    if (build == null || url == null || url.isEmpty) return null;
     return AppRemoteRelease(
-      latestBuildNumber: build.toInt(),
+      latestBuildNumber: build,
       versionLabel: data['versionLabel'] as String?,
       downloadUrl: url.trim(),
       releaseNotes: data['releaseNotes'] as String?,
