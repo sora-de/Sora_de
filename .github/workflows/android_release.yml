@@ -103,7 +103,10 @@ jobs:
         with:
           node-version: '20'
 
+      # Does not fail the job: release APK is already published. Enable Cloud Firestore API in GCP if this errors.
       - name: Update Firestore app_config/android
+        id: firestore_app_config
+        continue-on-error: true
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           APK_DOWNLOAD_URL: ${{ steps.apk.outputs.download_url }}
@@ -117,3 +120,8 @@ jobs:
           npm install firebase-admin@12.7.0 --no-save
           export RELEASE_NOTES="$(git log -1 --pretty=%B | head -c 2000)"
           node tool/ci/update_firestore_app_config.cjs
+
+      - name: Firestore update hint
+        if: steps.firestore_app_config.outcome == 'failure'
+        run: |
+          echo "::warning::Firestore step failed (e.g. PERMISSION_DENIED / SERVICE_DISABLED). Enable **Cloud Firestore API** in Google Cloud Console for this Firebase project, wait a few minutes, then re-run the failed step or set app_config/android manually. See docs/DEPLOY_GITHUB_ANDROID.md"
