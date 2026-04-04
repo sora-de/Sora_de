@@ -336,6 +336,7 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<InventoryKind>(
+            // ignore: deprecated_member_use
             value: _kind,
             decoration: const InputDecoration(labelText: 'Category'),
             items: const [
@@ -370,6 +371,7 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
             )
           else
             DropdownButtonFormField<String>(
+              // ignore: deprecated_member_use
               value: _presetType,
               decoration: const InputDecoration(labelText: 'Preset type'),
               items: presets

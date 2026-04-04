@@ -394,6 +394,8 @@ class _ExpensesTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
+                  // Remove ignore when minimum Flutter >= 3.33 (use initialValue + ValueKey).
+                  // ignore: deprecated_member_use
                   value: category,
                   decoration: const InputDecoration(labelText: 'Category'),
                   items: const [
