@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sorade/core/constants.dart';
 import 'package:sorade/navigation/sorade_provider_route.dart';
 import 'package:sorade/models/order_preset.dart';
 import 'package:sorade/state/sorade_controller.dart';
@@ -22,8 +23,8 @@ class OrderPresetsScreen extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Create combos you sell often (e.g. bouquet + card + envelope). '
-                  'They show as one-tap chips on New order.',
+                  'Create combos of resell products you sell often (e.g. plush + card). '
+                  'They show as one-tap chips on New order. Supplies and utilities are not included.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -130,10 +131,13 @@ class _OrderPresetEditScreenState extends State<OrderPresetEditScreen> {
   }
 
   Future<void> _pickLine(SoradeController c) async {
-    final items = c.inventoryItems;
+    final items =
+        c.inventoryItems.where((e) => e.kind == InventoryKind.product).toList();
     if (items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add inventory items first.')),
+        const SnackBar(
+          content: Text('Add product inventory first (bundles use resell items only).'),
+        ),
       );
       return;
     }
@@ -180,14 +184,29 @@ class _OrderPresetEditScreenState extends State<OrderPresetEditScreen> {
       );
       return;
     }
-    if (_lines.isEmpty) {
+    final validLines = _lines.where((l) {
+      final it = c.inventoryById(l.inventoryItemId);
+      return it != null && it.kind == InventoryKind.product;
+    }).toList();
+    if (validLines.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add at least one inventory line')),
+        const SnackBar(
+          content: Text('Add at least one resell product (supplies/utilities cannot be in bundles).'),
+        ),
       );
       return;
     }
+    if (validLines.length != _lines.length && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Removed ${_lines.length - validLines.length} line(s) that are not resell products.',
+          ),
+        ),
+      );
+    }
     final id = widget.existing?.id ?? const Uuid().v4();
-    await c.upsertOrderPreset(OrderPreset(id: id, name: name, lines: List.from(_lines)));
+    await c.upsertOrderPreset(OrderPreset(id: id, name: name, lines: validLines));
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -217,7 +236,7 @@ class _OrderPresetEditScreenState extends State<OrderPresetEditScreen> {
           FilledButton.tonalIcon(
             onPressed: () => _pickLine(c),
             icon: const Icon(Icons.add),
-            label: const Text('Add inventory line'),
+            label: const Text('Add product line'),
           ),
           const SizedBox(height: 16),
           Text(
@@ -227,7 +246,7 @@ class _OrderPresetEditScreenState extends State<OrderPresetEditScreen> {
           const SizedBox(height: 8),
           if (_lines.isEmpty)
             Text(
-              'Tap “Add inventory line”. Tap the same item again to increase qty.',
+              'Tap “Add product line”. Tap the same item again to increase qty.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -238,11 +257,21 @@ class _OrderPresetEditScreenState extends State<OrderPresetEditScreen> {
               final line = e.value;
               final item = c.inventoryById(line.inventoryItemId);
               final label = item?.displayName ?? 'Unknown item';
+              final badKind = item != null && item.kind != InventoryKind.product;
               return Card(
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
                   title: Text(label),
-                  subtitle: Text('Qty ${line.quantity}'),
+                  subtitle: Text(
+                    badKind
+                        ? 'Not a resell product — will be removed when you save'
+                        : 'Qty ${line.quantity}',
+                  ),
+                  subtitleTextStyle: badKind
+                      ? Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.error,
+                          )
+                      : null,
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

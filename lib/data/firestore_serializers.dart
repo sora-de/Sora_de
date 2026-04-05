@@ -4,6 +4,7 @@ import 'package:sorade/models/expense.dart';
 import 'package:sorade/models/gift_order.dart';
 import 'package:sorade/models/inventory_item.dart';
 import 'package:sorade/models/inventory_meta.dart';
+import 'package:sorade/models/inventory_purchase.dart';
 import 'package:sorade/models/order_line.dart';
 import 'package:sorade/models/order_preset.dart';
 import 'package:sorade/models/revenue.dart';
@@ -238,6 +239,34 @@ class FsInventoryMeta {
       lastPurchaseUnitPrice: _readDouble(m['lastPurchaseUnitPrice']),
       lastPurchaseQuantity: _readInt(m['lastPurchaseQuantity']),
       lastPurchaseAt: lastPurchaseAt,
+    );
+  }
+}
+
+class FsInventoryPurchase {
+  static Map<String, dynamic> toMap(InventoryPurchase p) {
+    return {
+      'inventoryItemId': p.inventoryItemId,
+      'purchasedAt': Timestamp.fromDate(p.purchasedAt),
+      'quantity': p.quantity,
+      'unitPrice': p.unitPrice,
+      if (p.supplierName != null && p.supplierName!.trim().isNotEmpty)
+        'supplierName': p.supplierName!.trim(),
+      if (p.note != null && p.note!.trim().isNotEmpty) 'note': p.note!.trim(),
+    };
+  }
+
+  static InventoryPurchase fromDoc(String id, Map<String, dynamic> m) {
+    final sn = m['supplierName'];
+    final nt = m['note'];
+    return InventoryPurchase(
+      id: id,
+      inventoryItemId: m['inventoryItemId'] as String? ?? '',
+      purchasedAt: _readDate(m['purchasedAt']),
+      quantity: _readInt(m['quantity']),
+      unitPrice: _readDouble(m['unitPrice']),
+      supplierName: sn is String && sn.trim().isNotEmpty ? sn.trim() : null,
+      note: nt is String && nt.trim().isNotEmpty ? nt.trim() : null,
     );
   }
 }

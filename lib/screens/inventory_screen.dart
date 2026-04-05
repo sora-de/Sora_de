@@ -6,6 +6,8 @@ import 'package:sorade/core/money_format.dart';
 import 'package:sorade/data/sorade_repository.dart';
 import 'package:sorade/models/inventory_item.dart';
 import 'package:sorade/screens/inventory_edit_screen.dart';
+import 'package:sorade/screens/inventory_purchase_history_screen.dart';
+import 'package:sorade/screens/record_purchase_screen.dart';
 import 'package:sorade/widgets/inventory_item_thumbnail.dart';
 import 'package:sorade/state/sorade_controller.dart';
 
@@ -168,6 +170,53 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 
+  void _openInventoryAddMenu(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.add_box_outlined),
+              title: const Text('New catalog item'),
+              subtitle: const Text('A product or SKU you do not have yet'),
+              onTap: () {
+                Navigator.pop(ctx);
+                if (!context.mounted) return;
+                Navigator.of(context).push<void>(
+                  soradeMaterialPageRoute(context, const InventoryEditScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.shopping_bag_outlined),
+              title: const Text('Record purchase'),
+              subtitle: const Text('Same item, new buy — updates stock and history'),
+              onTap: () {
+                Navigator.pop(ctx);
+                if (!context.mounted) return;
+                Navigator.of(context).push<void>(
+                  soradeMaterialPageRoute(context, const RecordPurchaseScreen()),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openPurchaseHistory(BuildContext context, InventoryItem item) async {
+    await Navigator.of(context).push<void>(
+      soradeMaterialPageRoute(
+        context,
+        InventoryPurchaseHistoryScreen(item: item),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.watch<SoradeController>();
@@ -262,23 +311,28 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   subtitle: 'Plushies, bouquets, candles, chocolates',
                   items: products,
                   onAdjust: (it) => _openAdjustStock(context, it),
+                  onPurchaseHistory: (it) => _openPurchaseHistory(context, it),
                 ),
                 _Section(
                   title: 'Customization supplies',
                   subtitle: 'Pens, notes, stickers, envelopes',
                   items: supplies,
                   onAdjust: (it) => _openAdjustStock(context, it),
+                  onPurchaseHistory: (it) => _openPurchaseHistory(context, it),
                 ),
                 _Section(
                   title: 'Utilities',
                   subtitle: 'Sanitizers, tissues',
                   items: utils,
                   onAdjust: (it) => _openAdjustStock(context, it),
+                  onPurchaseHistory: (it) => _openPurchaseHistory(context, it),
                 ),
                 if (all.isEmpty)
                   const Padding(
                     padding: EdgeInsets.only(top: 48),
-                    child: Center(child: Text('No items yet. Tap + to add.')),
+                    child: Center(
+                      child: Text('No items yet. Tap Add to create a catalog item.'),
+                    ),
                   ),
               ],
             ),
@@ -287,13 +341,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'fab_inventory_add',
-        onPressed: () async {
-          await Navigator.of(context).push<void>(
-            soradeMaterialPageRoute(context, const InventoryEditScreen()),
-          );
-        },
+        onPressed: () => _openInventoryAddMenu(context),
         icon: const Icon(Icons.add),
-        label: const Text('Add item'),
+        label: const Text('Add'),
       ),
     );
   }
@@ -305,12 +355,14 @@ class _Section extends StatelessWidget {
     required this.subtitle,
     required this.items,
     required this.onAdjust,
+    required this.onPurchaseHistory,
   });
 
   final String title;
   final String subtitle;
   final List<InventoryItem> items;
   final void Function(InventoryItem) onAdjust;
+  final void Function(InventoryItem) onPurchaseHistory;
 
   @override
   Widget build(BuildContext context) {
@@ -328,18 +380,28 @@ class _Section extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant)),
         const SizedBox(height: 8),
-        ...items
-            .map((e) => _InventoryTile(item: e, onAdjust: () => onAdjust(e))),
+        ...items.map(
+          (e) => _InventoryTile(
+            item: e,
+            onAdjust: () => onAdjust(e),
+            onPurchaseHistory: () => onPurchaseHistory(e),
+          ),
+        ),
       ],
     );
   }
 }
 
 class _InventoryTile extends StatelessWidget {
-  const _InventoryTile({required this.item, required this.onAdjust});
+  const _InventoryTile({
+    required this.item,
+    required this.onAdjust,
+    required this.onPurchaseHistory,
+  });
 
   final InventoryItem item;
   final VoidCallback onAdjust;
+  final VoidCallback onPurchaseHistory;
 
   @override
   Widget build(BuildContext context) {
@@ -359,6 +421,9 @@ class _InventoryTile extends StatelessWidget {
         : meta.lastPurchaseUnitPrice > 0
             ? 'Last bought ${formatMoney(context, meta.lastPurchaseUnitPrice)}'
             : null;
+    final salePart = item.kind == InventoryKind.product
+        ? ' · ${formatMoney(context, item.unitPrice)} each'
+        : '';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -375,7 +440,7 @@ class _InventoryTile extends StatelessWidget {
         title: Text(item.displayName),
         subtitle: Text(
           [
-            'Stock ${item.quantity} · Low at ${item.lowStockThreshold} · ${formatMoney(context, item.unitPrice)} each$costNote',
+            'Stock ${item.quantity} · Low at ${item.lowStockThreshold}$salePart$costNote',
             if (supplierNote != null) supplierNote,
             if (lastBuy != null) lastBuy,
             if (restock > 0) 'Suggested reorder: +$restock to reach target',
@@ -391,6 +456,11 @@ class _InventoryTile extends StatelessWidget {
                 child: Icon(Icons.warning_amber,
                     color: Theme.of(context).colorScheme.error),
               ),
+            IconButton(
+              tooltip: 'Purchase history',
+              icon: const Icon(Icons.receipt_long_outlined),
+              onPressed: onPurchaseHistory,
+            ),
             IconButton(
               tooltip: 'Adjust stock',
               icon: const Icon(Icons.tune),

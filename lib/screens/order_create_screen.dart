@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sorade/core/constants.dart';
 import 'package:sorade/core/money_format.dart';
 import 'package:sorade/data/sorade_repository.dart';
 import 'package:sorade/models/inventory_item.dart';
@@ -76,6 +77,9 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
         missing.add('A preset line points to a removed item.');
         continue;
       }
+      if (item.kind != InventoryKind.product) {
+        continue;
+      }
       if (item.quantity < pl.quantity) {
         missing.add(
           '${item.displayName}: need ${pl.quantity}, have ${item.quantity}',
@@ -94,9 +98,12 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
       return;
     }
 
+    var productLines = 0;
     setState(() {
       for (final pl in p.lines) {
-        final item = c.inventoryById(pl.inventoryItemId)!;
+        final item = c.inventoryById(pl.inventoryItemId);
+        if (item == null || item.kind != InventoryKind.product) continue;
+        productLines++;
         final price = c.suggestedSalePrice(item);
         final hit = _lines.where((l) => l.item.id == item.id).toList();
         if (hit.isEmpty) {
@@ -112,13 +119,26 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
         }
       }
     });
+    if (productLines == 0 && p.lines.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This preset has no resell products. Supplies and utilities are not sold on orders.',
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _pickItems(SoradeController c) async {
-    final items = c.inventoryItems.where((e) => e.quantity > 0).toList();
+    final items = c.inventoryItems
+        .where((e) => e.quantity > 0 && e.kind == InventoryKind.product)
+        .toList();
     if (items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add inventory with stock first.')),
+        const SnackBar(
+          content: Text('Add product inventory with stock first (resell items only).'),
+        ),
       );
       return;
     }
@@ -163,7 +183,7 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
   Future<void> _submit(SoradeController c) async {
     if (_lines.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add at least one product or supply line.')),
+        const SnackBar(content: Text('Add at least one product line.')),
       );
       return;
     }
@@ -251,7 +271,7 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
                 FilledButton.tonalIcon(
                   onPressed: () => _pickItems(c),
                   icon: const Icon(Icons.add_shopping_cart),
-                  label: const Text('Add inventory line'),
+                  label: const Text('Add product line'),
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -279,7 +299,8 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
                 const SizedBox(height: 8),
                 if (_lines.isEmpty)
                   Text(
-                    'Use quick bundles or “Add inventory line”. Stock deducts when you place the order. '
+                    'Use quick bundles or “Add product line”. Only resell products appear here; '
+                    'supplies and utilities stay in inventory for booth use. Stock deducts when you place the order. '
                     'Prices default to the last amount you charged for that item.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,

@@ -2,6 +2,7 @@ import 'package:sorade/models/expense.dart';
 import 'package:sorade/models/gift_order.dart';
 import 'package:sorade/models/inventory_item.dart';
 import 'package:sorade/models/inventory_meta.dart';
+import 'package:sorade/models/inventory_purchase.dart';
 import 'package:sorade/models/order_line.dart';
 import 'package:sorade/models/order_preset.dart';
 import 'package:sorade/models/revenue.dart';
@@ -46,6 +47,18 @@ abstract class SoradeRepository {
     required int delta,
     required String reason,
   });
+
+  /// Adds stock and appends a dated purchase row; updates meta last-purchase fields.
+  Future<void> recordInventoryPurchase({
+    required String inventoryItemId,
+    required int quantity,
+    required double unitPrice,
+    required DateTime purchasedAt,
+    String? supplierName,
+    String? note,
+  });
+
+  Future<List<InventoryPurchase>> inventoryPurchasesFor(String inventoryItemId);
 
   Future<GiftOrder> createGiftOrder({
     required List<OrderLine> lines,

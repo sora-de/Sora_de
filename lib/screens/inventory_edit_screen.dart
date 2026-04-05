@@ -6,6 +6,9 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:sorade/core/constants.dart';
 import 'package:sorade/models/inventory_item.dart';
+import 'package:sorade/navigation/sorade_provider_route.dart';
+import 'package:sorade/screens/inventory_purchase_history_screen.dart';
+import 'package:sorade/screens/record_purchase_screen.dart';
 import 'package:sorade/models/inventory_meta.dart';
 import 'package:sorade/services/inventory_photo_storage.dart';
 import 'package:sorade/state/sorade_controller.dart';
@@ -78,9 +81,6 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
       _cost.text = m.costPerUnit > 0 ? '${m.costPerUnit}' : '0';
       _target.text = m.targetStockLevel > 0 ? '${m.targetStockLevel}' : '0';
       _supplier.text = m.supplierName ?? '';
-      _lastPurchasePrice.text = m.lastPurchaseUnitPrice > 0 ? '${m.lastPurchaseUnitPrice}' : '0';
-      _lastPurchaseQty.text = m.lastPurchaseQuantity > 0 ? '${m.lastPurchaseQuantity}' : '0';
-      _lastPurchaseDate = m.lastPurchaseAt;
     }
     _metaLoaded = true;
   }
@@ -178,21 +178,32 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
       productTypeLabel: productType,
       quantity: qty,
       lowStockThreshold: low < 0 ? 0 : low,
-      unitPrice: price < 0 ? 0 : price,
+      unitPrice: _kind == InventoryKind.product ? (price < 0 ? 0 : price) : 0,
       photoUrl: widget.existing?.photoUrl,
     );
 
     final ctrl = context.read<SoradeController>();
+    final prevMeta = ctrl.inventoryMetaFor(id);
     final lastPurchase = double.tryParse(_lastPurchasePrice.text.trim()) ?? 0;
-    final meta = InventoryMeta(
-      costPerUnit: cost < 0 ? 0 : cost,
-      targetStockLevel: target < 0 ? 0 : target,
-      lastSoldUnitPrice: ctrl.inventoryMetaFor(id).lastSoldUnitPrice,
-      supplierName: _supplier.text.trim().isEmpty ? null : _supplier.text.trim(),
-      lastPurchaseUnitPrice: lastPurchase < 0 ? 0 : lastPurchase,
-      lastPurchaseQuantity: lastPurchaseQty < 0 ? 0 : lastPurchaseQty,
-      lastPurchaseAt: _lastPurchaseDate,
-    );
+    final meta = isNew
+        ? InventoryMeta(
+            costPerUnit: cost < 0 ? 0 : cost,
+            targetStockLevel: target < 0 ? 0 : target,
+            lastSoldUnitPrice: prevMeta.lastSoldUnitPrice,
+            supplierName: _supplier.text.trim().isEmpty ? null : _supplier.text.trim(),
+            lastPurchaseUnitPrice: lastPurchase < 0 ? 0 : lastPurchase,
+            lastPurchaseQuantity: lastPurchaseQty < 0 ? 0 : lastPurchaseQty,
+            lastPurchaseAt: _lastPurchaseDate,
+          )
+        : InventoryMeta(
+            costPerUnit: cost < 0 ? 0 : cost,
+            targetStockLevel: target < 0 ? 0 : target,
+            lastSoldUnitPrice: prevMeta.lastSoldUnitPrice,
+            supplierName: _supplier.text.trim().isEmpty ? null : _supplier.text.trim(),
+            lastPurchaseUnitPrice: prevMeta.lastPurchaseUnitPrice,
+            lastPurchaseQuantity: prevMeta.lastPurchaseQuantity,
+            lastPurchaseAt: prevMeta.lastPurchaseAt,
+          );
 
     try {
       await ctrl.upsertInventoryItem(item);
@@ -282,6 +293,48 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
                 ),
               ),
             ),
+          if (existing != null) const SizedBox(height: 8),
+          if (existing != null)
+            Card(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.shopping_bag_outlined,
+                        color: Theme.of(context).colorScheme.primary),
+                    title: const Text('Record purchase'),
+                    subtitle: const Text(
+                      'Same SKU, new buy — adds stock and a dated line in history',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () async {
+                      await Navigator.of(context).push<void>(
+                        soradeMaterialPageRoute(
+                          context,
+                          RecordPurchaseScreen(initialItem: existing),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: Icon(Icons.receipt_long_outlined,
+                        color: Theme.of(context).colorScheme.primary),
+                    title: const Text('Purchase history'),
+                    subtitle: const Text('Past buys with quantity and price per piece'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () async {
+                      await Navigator.of(context).push<void>(
+                        soradeMaterialPageRoute(
+                          context,
+                          InventoryPurchaseHistoryScreen(item: existing),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
           if (existing != null) const SizedBox(height: 12),
           Text(
             'Photo',
@@ -361,6 +414,15 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
               });
             },
           ),
+          const SizedBox(height: 6),
+          Text(
+            _kind == InventoryKind.product
+                ? 'Products can be sold on gift orders (sale price below).'
+                : 'Supplies and utilities are for booth use — they do not appear on gift orders.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
           const SizedBox(height: 12),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
@@ -389,79 +451,93 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
             ),
           const SizedBox(height: 20),
           Text(
-            'Reorder & supplier',
+            existing == null ? 'First buy (optional)' : 'Supplier',
             style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
+          if (existing != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Who you usually order from — shown on the inventory list. For buys, prices, '
+              'and stock, use Record purchase and Purchase history above.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ],
           const SizedBox(height: 8),
           TextField(
             controller: _supplier,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Supplier (optional)',
-              hintText: 'Who you usually reorder from',
+              hintText: existing == null
+                  ? 'Who you usually reorder from'
+                  : 'e.g. wholesaler name',
             ),
             textCapitalization: TextCapitalization.words,
           ),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 3,
-                child: TextField(
-                  controller: _lastPurchasePrice,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    labelText: 'Buy price per piece',
-                    hintText: 'e.g. 100',
-                    prefixText: '₹ ',
-                    helperText: 'What you paid for one unit',
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: TextField(
-                  controller: _lastPurchaseQty,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Pieces bought',
-                    hintText: 'e.g. 5',
-                    helperText: '0 = skip',
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Text(
-            'Example: 5 sanitizers at ₹100 each — enter 5 and 100.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-          const SizedBox(height: 8),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Last purchase date'),
-            subtitle: Text(
-              _lastPurchaseDate == null ? 'Not set' : dateFmt.format(_lastPurchaseDate!),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
+          if (existing == null) ...[
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (_lastPurchaseDate != null)
-                  IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () => setState(() => _lastPurchaseDate = null),
-                    tooltip: 'Clear date',
+                Expanded(
+                  flex: 3,
+                  child: TextField(
+                    controller: _lastPurchasePrice,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Buy price per piece',
+                      hintText: 'e.g. 100',
+                      prefixText: '₹ ',
+                      helperText: 'What you paid for one unit',
+                    ),
                   ),
-                FilledButton.tonal(
-                  onPressed: _pickLastPurchaseDate,
-                  child: const Text('Pick date'),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: _lastPurchaseQty,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Pieces bought',
+                      hintText: 'e.g. 5',
+                      helperText: '0 = skip',
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
+            Text(
+              'Example: 5 sanitizers at ₹100 each — enter 5 and 100.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Last purchase date'),
+              subtitle: Text(
+                _lastPurchaseDate == null ? 'Not set' : dateFmt.format(_lastPurchaseDate!),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_lastPurchaseDate != null)
+                    IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () => setState(() => _lastPurchaseDate = null),
+                      tooltip: 'Clear date',
+                    ),
+                  FilledButton.tonal(
+                    onPressed: _pickLastPurchaseDate,
+                    child: const Text('Pick date'),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           if (existing == null)
             TextField(
@@ -497,31 +573,42 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _price,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Default sale price',
-                    hintText: 'New orders use last sale if set',
+          if (_kind == InventoryKind.product) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _price,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Default sale price',
+                      hintText: 'Used on gift orders for this product',
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _cost,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Unit cost (COGS)',
-                    hintText: '0 = off',
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _cost,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Unit cost (COGS)',
+                      hintText: '0 = off',
+                    ),
                   ),
                 ),
+              ],
+            ),
+          ] else
+            TextField(
+              controller: _cost,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Unit cost (COGS)',
+                hintText: '0 = off · not sold on orders',
+                helperText: 'Supplies & utilities are for booth use only',
               ),
-            ],
-          ),
+            ),
         ],
       ),
     );

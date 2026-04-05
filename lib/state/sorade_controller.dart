@@ -6,6 +6,7 @@ import 'package:sorade/models/expense.dart';
 import 'package:sorade/models/gift_order.dart';
 import 'package:sorade/models/inventory_item.dart';
 import 'package:sorade/models/inventory_meta.dart';
+import 'package:sorade/models/inventory_purchase.dart';
 import 'package:sorade/models/order_line.dart';
 import 'package:sorade/models/order_preset.dart';
 import 'package:sorade/models/revenue.dart';
@@ -107,6 +108,29 @@ class SoradeController extends ChangeNotifier {
       inventoryItemId: inventoryItemId,
       delta: delta,
       reason: reason,
+    );
+    notifyListeners();
+  }
+
+  Future<List<InventoryPurchase>> inventoryPurchasesFor(String inventoryItemId) {
+    return _repo.inventoryPurchasesFor(inventoryItemId);
+  }
+
+  Future<void> recordInventoryPurchase({
+    required String inventoryItemId,
+    required int quantity,
+    required double unitPrice,
+    required DateTime purchasedAt,
+    String? supplierName,
+    String? note,
+  }) async {
+    await _repo.recordInventoryPurchase(
+      inventoryItemId: inventoryItemId,
+      quantity: quantity,
+      unitPrice: unitPrice,
+      purchasedAt: purchasedAt,
+      supplierName: supplierName,
+      note: note,
     );
     notifyListeners();
   }

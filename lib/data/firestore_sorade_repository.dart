@@ -8,6 +8,7 @@ import 'package:sorade/models/expense.dart';
 import 'package:sorade/models/gift_order.dart';
 import 'package:sorade/models/inventory_item.dart';
 import 'package:sorade/models/inventory_meta.dart';
+import 'package:sorade/models/inventory_purchase.dart';
 import 'package:sorade/models/order_line.dart';
 import 'package:sorade/models/order_preset.dart';
 import 'package:sorade/models/revenue.dart';
@@ -23,6 +24,7 @@ abstract final class _FsCollections {
   static const orderPresets = 'order_presets';
   static const inventoryMeta = 'inventory_meta';
   static const stockAdjustments = 'stock_adjustments';
+  static const inventoryPurchases = 'purchases';
 }
 
 class FirestoreSoradeRepository extends SoradeRepository {
@@ -55,6 +57,9 @@ class FirestoreSoradeRepository extends SoradeRepository {
       _userDoc.collection(_FsCollections.inventoryMeta);
   CollectionReference<Map<String, dynamic>> get _stock =>
       _userDoc.collection(_FsCollections.stockAdjustments);
+
+  CollectionReference<Map<String, dynamic>> _purchases(String inventoryItemId) =>
+      _inv.doc(inventoryItemId).collection(_FsCollections.inventoryPurchases);
 
   List<InventoryItem> _inventoryItems = [];
   List<GiftOrder> _giftOrders = [];
@@ -192,9 +197,23 @@ class FirestoreSoradeRepository extends SoradeRepository {
     await _inv.doc(item.id).set(FsInventory.toMap(item));
   }
 
+  Future<void> _deletePurchasesSubcollection(String inventoryItemId) async {
+    final col = _purchases(inventoryItemId);
+    while (true) {
+      final snap = await col.limit(500).get();
+      if (snap.docs.isEmpty) break;
+      final b = _db.batch();
+      for (final d in snap.docs) {
+        b.delete(d.reference);
+      }
+      await b.commit();
+    }
+  }
+
   @override
   Future<void> deleteInventoryItem(String id) async {
     await deleteInventoryPhotoFile(uid: _uid, itemId: id);
+    await _deletePurchasesSubcollection(id);
     final b = _db.batch();
     b.delete(_inv.doc(id));
     b.delete(_meta.doc(id));
@@ -245,6 +264,79 @@ class FirestoreSoradeRepository extends SoradeRepository {
   }
 
   @override
+  Future<List<InventoryPurchase>> inventoryPurchasesFor(String inventoryItemId) async {
+    final snap = await _purchases(inventoryItemId)
+        .orderBy('purchasedAt', descending: true)
+        .get();
+    return snap.docs
+        .map((d) => FsInventoryPurchase.fromDoc(d.id, d.data()))
+        .toList();
+  }
+
+  @override
+  Future<void> recordInventoryPurchase({
+    required String inventoryItemId,
+    required int quantity,
+    required double unitPrice,
+    required DateTime purchasedAt,
+    String? supplierName,
+    String? note,
+  }) async {
+    if (quantity <= 0) {
+      throw StockException('Purchase quantity must be greater than zero.');
+    }
+    if (unitPrice < 0) {
+      throw StockException('Unit price cannot be negative.');
+    }
+    final supplierTrimmed = supplierName?.trim();
+    final noteTrimmed = note?.trim();
+    final purchaseId = _uuid.v4();
+
+    await _db.runTransaction((txn) async {
+      final invRef = _inv.doc(inventoryItemId);
+      final snap = await txn.get(invRef);
+      if (!snap.exists) {
+        throw StockException('Item not found.');
+      }
+      final item = FsInventory.fromDoc(snap.id, snap.data()!);
+      final nextQty = item.quantity + quantity;
+
+      final metaRef = _meta.doc(inventoryItemId);
+      final metaSnap = await txn.get(metaRef);
+      final m = metaSnap.exists && metaSnap.data() != null
+          ? FsInventoryMeta.fromMap(metaSnap.data()!)
+          : InventoryMeta.empty;
+
+      final nextMeta = m.copyWith(
+        lastPurchaseUnitPrice: unitPrice,
+        lastPurchaseQuantity: quantity,
+        lastPurchaseAt: purchasedAt,
+        supplierName: (supplierTrimmed != null && supplierTrimmed.isNotEmpty)
+            ? supplierTrimmed
+            : null,
+      );
+
+      final purchase = InventoryPurchase(
+        id: purchaseId,
+        inventoryItemId: inventoryItemId,
+        purchasedAt: purchasedAt,
+        quantity: quantity,
+        unitPrice: unitPrice,
+        supplierName:
+            supplierTrimmed != null && supplierTrimmed.isNotEmpty ? supplierTrimmed : null,
+        note: noteTrimmed != null && noteTrimmed.isNotEmpty ? noteTrimmed : null,
+      );
+
+      txn.update(invRef, FsInventory.toMap(item.copyWith(quantity: nextQty)));
+      txn.set(
+        _purchases(inventoryItemId).doc(purchaseId),
+        FsInventoryPurchase.toMap(purchase),
+      );
+      txn.set(metaRef, FsInventoryMeta.toMap(nextMeta));
+    });
+  }
+
+  @override
   Future<GiftOrder> createGiftOrder({
     required List<OrderLine> lines,
     String? customerLabel,
@@ -269,6 +361,11 @@ class FirestoreSoradeRepository extends SoradeRepository {
           throw StockException('Missing inventory item for line: ${line.itemName}');
         }
         final item = FsInventory.fromDoc(snap.id, snap.data()!);
+        if (item.kind != InventoryKind.product) {
+          throw StockException(
+            'Gift orders are for resell products only. "${item.displayName}" is not a product.',
+          );
+        }
         if (item.quantity < line.quantity) {
           throw StockException(
             'Not enough stock for "${item.displayName}" (have ${item.quantity}, need ${line.quantity}).',
