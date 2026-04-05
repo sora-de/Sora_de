@@ -46,14 +46,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final q = _search.text.trim().toLowerCase();
     if (q.isEmpty) return list;
     return list.where((e) {
-      final supplier = context.read<SoradeController>().inventoryMetaFor(e.id).supplierName ?? '';
-      final blob =
-          '${e.displayName} ${e.productTypeLabel ?? ''} $supplier'.toLowerCase();
+      final supplier = context
+              .read<SoradeController>()
+              .inventoryMetaFor(e.id)
+              .supplierName ??
+          '';
+      final blob = '${e.displayName} ${e.productTypeLabel ?? ''} $supplier'
+          .toLowerCase();
       return blob.contains(q);
     }).toList();
   }
 
-  Future<void> _openAdjustStock(BuildContext context, InventoryItem item) async {
+  Future<void> _openAdjustStock(
+      BuildContext context, InventoryItem item) async {
     final c = context.read<SoradeController>();
     final deltaCtrl = TextEditingController(text: '1');
     final reasonCtrl = TextEditingController();
@@ -69,7 +74,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Current: ${item.quantity}', style: Theme.of(context).textTheme.titleMedium),
+                Text('Current: ${item.quantity}',
+                    style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -80,7 +86,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           ButtonSegment(value: 1, label: Text('Add')),
                         ],
                         selected: {sign},
-                        onSelectionChanged: (s) => setLocal(() => sign = s.first),
+                        onSelectionChanged: (s) =>
+                            setLocal(() => sign = s.first),
                       ),
                     ),
                   ],
@@ -125,8 +132,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Apply')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Apply')),
           ],
         ),
       ),
@@ -147,7 +158,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
         );
       } on StockException catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(e.message)));
         }
       }
     } else {
@@ -162,9 +174,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final all = c.inventoryItems;
     final filtered = _applyFilters(all);
 
-    final products = filtered.where((e) => e.kind == InventoryKind.product).toList();
-    final supplies = filtered.where((e) => e.kind == InventoryKind.supply).toList();
-    final utils = filtered.where((e) => e.kind == InventoryKind.utility).toList();
+    final products =
+        filtered.where((e) => e.kind == InventoryKind.product).toList();
+    final supplies =
+        filtered.where((e) => e.kind == InventoryKind.supply).toList();
+    final utils =
+        filtered.where((e) => e.kind == InventoryKind.utility).toList();
 
     return Scaffold(
       body: Column(
@@ -203,19 +218,22 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 FilterChip(
                   label: const Text('Products'),
                   selected: _filter == _InvFilter.product,
-                  onSelected: (_) => setState(() => _filter = _InvFilter.product),
+                  onSelected: (_) =>
+                      setState(() => _filter = _InvFilter.product),
                 ),
                 const SizedBox(width: 8),
                 FilterChip(
                   label: const Text('Supplies'),
                   selected: _filter == _InvFilter.supply,
-                  onSelected: (_) => setState(() => _filter = _InvFilter.supply),
+                  onSelected: (_) =>
+                      setState(() => _filter = _InvFilter.supply),
                 ),
                 const SizedBox(width: 8),
                 FilterChip(
                   label: const Text('Utilities'),
                   selected: _filter == _InvFilter.utility,
-                  onSelected: (_) => setState(() => _filter = _InvFilter.utility),
+                  onSelected: (_) =>
+                      setState(() => _filter = _InvFilter.utility),
                 ),
               ],
             ),
@@ -232,7 +250,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                       child: Text(
                         'No matches. Try another search or filter.',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                       ),
                     ),
@@ -299,10 +319,17 @@ class _Section extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 12),
-        Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-        Text(subtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        Text(title,
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800)),
+        Text(subtitle,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant)),
         const SizedBox(height: 8),
-        ...items.map((e) => _InventoryTile(item: e, onAdjust: () => onAdjust(e))),
+        ...items
+            .map((e) => _InventoryTile(item: e, onAdjust: () => onAdjust(e))),
       ],
     );
   }
@@ -319,11 +346,15 @@ class _InventoryTile extends StatelessWidget {
     final c = context.watch<SoradeController>();
     final restock = c.suggestedRestockUnits(item);
     final meta = c.inventoryMetaFor(item.id);
-    final costNote = meta.costPerUnit > 0 ? ' · Cost ${formatMoney(context, meta.costPerUnit)}' : '';
-    final supplierNote = meta.supplierName != null && meta.supplierName!.trim().isNotEmpty
-        ? 'Supplier: ${meta.supplierName!.trim()}'
-        : null;
-    final lastBuy = meta.lastPurchaseUnitPrice > 0 && meta.lastPurchaseAt != null
+    final costNote = meta.costPerUnit > 0
+        ? ' · Cost ${formatMoney(context, meta.costPerUnit)}'
+        : '';
+    final supplierNote =
+        meta.supplierName != null && meta.supplierName!.trim().isNotEmpty
+            ? 'Supplier: ${meta.supplierName!.trim()}'
+            : null;
+    final lastBuy = meta.lastPurchaseUnitPrice > 0 &&
+            meta.lastPurchaseAt != null
         ? 'Last bought ${formatMoney(context, meta.lastPurchaseUnitPrice)} · ${meta.lastPurchaseAt!.toLocal().toString().split(' ').first}'
         : meta.lastPurchaseUnitPrice > 0
             ? 'Last bought ${formatMoney(context, meta.lastPurchaseUnitPrice)}'
@@ -357,7 +388,8 @@ class _InventoryTile extends StatelessWidget {
             if (item.isLowStock)
               Padding(
                 padding: const EdgeInsets.only(right: 4),
-                child: Icon(Icons.warning_amber, color: Theme.of(context).colorScheme.error),
+                child: Icon(Icons.warning_amber,
+                    color: Theme.of(context).colorScheme.error),
               ),
             IconButton(
               tooltip: 'Adjust stock',

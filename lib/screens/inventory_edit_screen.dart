@@ -32,6 +32,7 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
   final _target = TextEditingController(text: '0');
   final _supplier = TextEditingController();
   final _lastPurchasePrice = TextEditingController(text: '0');
+  final _lastPurchaseQty = TextEditingController(text: '0');
 
   InventoryKind _kind = InventoryKind.product;
   String _presetType = ProductTypePresets.all.first;
@@ -78,6 +79,7 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
       _target.text = m.targetStockLevel > 0 ? '${m.targetStockLevel}' : '0';
       _supplier.text = m.supplierName ?? '';
       _lastPurchasePrice.text = m.lastPurchaseUnitPrice > 0 ? '${m.lastPurchaseUnitPrice}' : '0';
+      _lastPurchaseQty.text = m.lastPurchaseQuantity > 0 ? '${m.lastPurchaseQuantity}' : '0';
       _lastPurchaseDate = m.lastPurchaseAt;
     }
     _metaLoaded = true;
@@ -103,6 +105,7 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
     _target.dispose();
     _supplier.dispose();
     _lastPurchasePrice.dispose();
+    _lastPurchaseQty.dispose();
     super.dispose();
   }
 
@@ -137,7 +140,11 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
       return;
     }
     final isNew = widget.existing == null;
-    final qtyParsed = int.tryParse(_qty.text.trim()) ?? 0;
+    var qtyParsed = int.tryParse(_qty.text.trim()) ?? 0;
+    final lastPurchaseQty = int.tryParse(_lastPurchaseQty.text.trim()) ?? 0;
+    if (isNew && qtyParsed <= 0 && lastPurchaseQty > 0) {
+      qtyParsed = lastPurchaseQty;
+    }
     final qty = isNew ? (qtyParsed < 0 ? 0 : qtyParsed) : widget.existing!.quantity;
 
     final low = int.tryParse(_low.text.trim()) ?? 0;
@@ -183,6 +190,7 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
       lastSoldUnitPrice: ctrl.inventoryMetaFor(id).lastSoldUnitPrice,
       supplierName: _supplier.text.trim().isEmpty ? null : _supplier.text.trim(),
       lastPurchaseUnitPrice: lastPurchase < 0 ? 0 : lastPurchase,
+      lastPurchaseQuantity: lastPurchaseQty < 0 ? 0 : lastPurchaseQty,
       lastPurchaseAt: _lastPurchaseDate,
     );
 
@@ -394,14 +402,42 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
             textCapitalization: TextCapitalization.words,
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _lastPurchasePrice,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: 'Last purchase unit price (optional)',
-              hintText: '0 = not set',
-              prefixText: '₹ ',
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3,
+                child: TextField(
+                  controller: _lastPurchasePrice,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Buy price per piece',
+                    hintText: 'e.g. 100',
+                    prefixText: '₹ ',
+                    helperText: 'What you paid for one unit',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: _lastPurchaseQty,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Pieces bought',
+                    hintText: 'e.g. 5',
+                    helperText: '0 = skip',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Text(
+            'Example: 5 sanitizers at ₹100 each — enter 5 and 100.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
           const SizedBox(height: 8),
           ListTile(
@@ -433,7 +469,8 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
                 labelText: 'Starting stock qty',
-                helperText: 'After creation, use Adjust stock for changes',
+                helperText:
+                    'Leave 0 to match pieces bought above. After creation, use Adjust stock for changes.',
               ),
             ),
           if (existing == null) const SizedBox(height: 12),

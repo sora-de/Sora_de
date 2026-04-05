@@ -5,6 +5,7 @@ class InventoryMeta {
     this.lastSoldUnitPrice = 0,
     this.supplierName,
     this.lastPurchaseUnitPrice = 0,
+    this.lastPurchaseQuantity = 0,
     this.lastPurchaseAt,
   });
 
@@ -23,6 +24,9 @@ class InventoryMeta {
   /// Last purchase unit price you paid. 0 means not set.
   final double lastPurchaseUnitPrice;
 
+  /// How many units you bought last time (reorder record). 0 means not set.
+  final int lastPurchaseQuantity;
+
   /// When you last bought at [lastPurchaseUnitPrice] (optional).
   final DateTime? lastPurchaseAt;
 
@@ -34,6 +38,7 @@ class InventoryMeta {
     double? lastSoldUnitPrice,
     String? supplierName,
     double? lastPurchaseUnitPrice,
+    int? lastPurchaseQuantity,
     DateTime? lastPurchaseAt,
     bool clearSupplier = false,
     bool clearLastPurchase = false,
@@ -45,6 +50,8 @@ class InventoryMeta {
       supplierName: clearSupplier ? null : (supplierName ?? this.supplierName),
       lastPurchaseUnitPrice:
           clearLastPurchase ? 0 : (lastPurchaseUnitPrice ?? this.lastPurchaseUnitPrice),
+      lastPurchaseQuantity:
+          clearLastPurchase ? 0 : (lastPurchaseQuantity ?? this.lastPurchaseQuantity),
       lastPurchaseAt: clearLastPurchase ? null : (lastPurchaseAt ?? this.lastPurchaseAt),
     );
   }

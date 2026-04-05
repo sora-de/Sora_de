@@ -216,6 +216,7 @@ class FsInventoryMeta {
       if (meta.supplierName != null && meta.supplierName!.trim().isNotEmpty)
         'supplierName': meta.supplierName!.trim(),
       'lastPurchaseUnitPrice': meta.lastPurchaseUnitPrice,
+      if (meta.lastPurchaseQuantity > 0) 'lastPurchaseQuantity': meta.lastPurchaseQuantity,
       if (meta.lastPurchaseAt != null)
         'lastPurchaseAt': Timestamp.fromDate(meta.lastPurchaseAt!),
     };
@@ -235,6 +236,7 @@ class FsInventoryMeta {
       lastSoldUnitPrice: _readDouble(m['lastSoldUnitPrice']),
       supplierName: sn is String && sn.trim().isNotEmpty ? sn.trim() : null,
       lastPurchaseUnitPrice: _readDouble(m['lastPurchaseUnitPrice']),
+      lastPurchaseQuantity: _readInt(m['lastPurchaseQuantity']),
       lastPurchaseAt: lastPurchaseAt,
     );
   }
