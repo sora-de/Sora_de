@@ -67,28 +67,27 @@ class SoradeController extends ChangeNotifier {
   }
 
   /// Uploads a JPEG and updates the item’s [photoUrl] in Firestore.
-  Future<void> setInventoryItemPhotoJpeg(String itemId, Uint8List jpegBytes) async {
+  ///
+  /// Pass the same [item] you just persisted so we do not rely on the async
+  /// Firestore snapshot (which can lag and made [getInventory] return null).
+  Future<void> setInventoryItemPhotoJpeg(InventoryItem item, Uint8List jpegBytes) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
     final url = await uploadInventoryPhotoJpeg(
       uid: uid,
-      itemId: itemId,
+      itemId: item.id,
       jpegBytes: jpegBytes,
     );
-    final item = _repo.getInventory(itemId);
-    if (item == null) return;
     await _repo.upsertInventoryItem(item.copyWith(photoUrl: url));
     notifyListeners();
   }
 
   /// Removes the Storage file and clears [photoUrl] on the item.
-  Future<void> clearInventoryItemPhoto(String itemId) async {
+  Future<void> clearInventoryItemPhoto(InventoryItem item) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
-      await deleteInventoryPhotoFile(uid: uid, itemId: itemId);
+      await deleteInventoryPhotoFile(uid: uid, itemId: item.id);
     }
-    final item = _repo.getInventory(itemId);
-    if (item == null) return;
     await _repo.upsertInventoryItem(item.copyWith(clearPhoto: true));
     notifyListeners();
   }

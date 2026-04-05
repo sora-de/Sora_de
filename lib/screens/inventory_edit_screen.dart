@@ -191,9 +191,9 @@ class _InventoryEditScreenState extends State<InventoryEditScreen> {
       await ctrl.putInventoryMeta(id, meta);
 
       if (_pickedJpeg != null) {
-        await ctrl.setInventoryItemPhotoJpeg(id, _pickedJpeg!);
+        await ctrl.setInventoryItemPhotoJpeg(item, _pickedJpeg!);
       } else if (_removePhotoOnSave && widget.existing?.photoUrl != null) {
-        await ctrl.clearInventoryItemPhoto(id);
+        await ctrl.clearInventoryItemPhoto(item);
       }
 
       if (mounted) Navigator.of(context).pop();
