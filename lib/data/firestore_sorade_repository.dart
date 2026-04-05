@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:sorade/core/constants.dart';
 import 'package:sorade/data/firestore_serializers.dart';
 import 'package:sorade/data/sorade_repository.dart';
@@ -13,6 +12,7 @@ import 'package:sorade/models/order_line.dart';
 import 'package:sorade/models/order_preset.dart';
 import 'package:sorade/models/revenue.dart';
 import 'package:sorade/models/stock_adjustment.dart';
+import 'package:sorade/services/inventory_photo_storage.dart';
 import 'package:uuid/uuid.dart';
 
 abstract final class _FsCollections {
@@ -194,11 +194,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
 
   @override
   Future<void> deleteInventoryItem(String id) async {
-    try {
-      await FirebaseStorage.instance
-          .ref('users/$_uid/inventory_photos/$id.jpg')
-          .delete();
-    } catch (_) {}
+    await deleteInventoryPhotoFile(uid: _uid, itemId: id);
     final b = _db.batch();
     b.delete(_inv.doc(id));
     b.delete(_meta.doc(id));

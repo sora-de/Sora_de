@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -23,6 +25,16 @@ Future<void> main() async {
     debugPrint('Firebase init failed: $e\n$st');
     runApp(FirebaseInitErrorApp(message: e.toString()));
     return;
+  }
+
+  // Windows: Firestore + Storage still hit https://github.com/firebase/flutterfire/issues/11933
+  // (native → Flutter on a background thread). Disabling persistence here cuts some callbacks.
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+    try {
+      FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: false);
+    } catch (e) {
+      debugPrint('Firestore settings (Windows): $e');
+    }
   }
 
   runApp(SoradeApp(prefs: prefs));

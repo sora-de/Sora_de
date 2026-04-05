@@ -1,9 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:sorade/core/brand_colors.dart';
 import 'package:sorade/screens/how_to_use_screen.dart';
 import 'package:sorade/services/app_update_service.dart';
+import 'package:sorade/services/storage_probe.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -21,6 +22,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _busy = false;
   String? _passwordMessage;
   bool _passwordSuccess = false;
+  bool _storageProbeBusy = false;
 
   AppVersionSnapshot? _versionSnap;
   bool _versionLoading = true;
@@ -130,6 +132,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _runStorageProbe() async {
+    setState(() => _storageProbeBusy = true);
+    final result = await runFirebaseStorageProbe();
+    if (!mounted) return;
+    setState(() => _storageProbeBusy = false);
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(result.ok ? 'Storage OK' : 'Storage test failed'),
+        content: SingleChildScrollView(
+          child: SelectableText(result.summary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   String _mapPasswordError(FirebaseAuthException e) {
@@ -394,6 +418,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
             ),
           ),
+          if (kDebugMode) ...[
+            const SizedBox(height: 28),
+            Text(
+              'Developer',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BrandColors.primaryGreen,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              child: ListTile(
+                leading: Icon(Icons.cloud_upload_outlined, color: cs.primary),
+                title: const Text('Test Firebase Storage upload'),
+                subtitle: Text(
+                  'Uploads a tiny JPEG to users/<uid>/inventory_photos/ (same as inventory), '
+                  'then deletes it. Sign in required.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                ),
+                trailing: _storageProbeBusy
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.chevron_right),
+                onTap: _storageProbeBusy ? null : _runStorageProbe,
+              ),
+            ),
+          ],
           const SizedBox(height: 28),
           Text(
             'Change password',

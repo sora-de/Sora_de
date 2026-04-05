@@ -73,13 +73,19 @@ class SoradeController extends ChangeNotifier {
   Future<void> setInventoryItemPhotoJpeg(InventoryItem item, Uint8List jpegBytes) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    final url = await uploadInventoryPhotoJpeg(
-      uid: uid,
-      itemId: item.id,
-      jpegBytes: jpegBytes,
-    );
-    await _repo.upsertInventoryItem(item.copyWith(photoUrl: url));
-    notifyListeners();
+    try {
+      final url = await uploadInventoryPhotoJpeg(
+        uid: uid,
+        itemId: item.id,
+        jpegBytes: jpegBytes,
+      );
+      await _repo.upsertInventoryItem(item.copyWith(photoUrl: url));
+      notifyListeners();
+    } on InventoryPhotoException {
+      rethrow;
+    } on FirebaseException catch (e) {
+      throw InventoryPhotoException(describeFirebaseStorageFailure(e));
+    }
   }
 
   /// Removes the Storage file and clears [photoUrl] on the item.
