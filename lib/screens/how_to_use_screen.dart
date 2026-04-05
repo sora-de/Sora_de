@@ -47,7 +47,7 @@ class HowToUseScreen extends StatelessWidget {
             n: 3,
             title: 'Sell a gift bundle',
             body:
-                'Go to Orders → New order. Add line items (or start from a Bundle preset), set customer name and optional message, then save. Stock for each line is reduced automatically.',
+                'Go to Orders → New order. Add product lines (only items you resell — supplies and utilities never appear here) or tap a Bundle preset. Set customer name and optional message, then place the order. Stock for each line drops automatically.',
           ),
           _NumberedStep(
             n: 4,
@@ -75,23 +75,27 @@ class HowToUseScreen extends StatelessWidget {
           _ExpandableGuide(
             title: 'Stock (Inventory)',
             child: Text(
-              'Your catalog: products you sell in bundles, supplies, and utility items.\n\n'
-              '• Add: tap the floating “add” button, fill name, kind, quantity, unit price, optional photo, supplier, and cost per unit (used for margin in reports).\n'
-              '• Search and filters: narrow the list by type (product / supply / utility) or search by name, type label, or supplier.\n'
-              '• Edit: open an item to change details, photo, reorder thresholds, or delete.\n'
-              '• Adjust stock: quick add/remove units with a reason (damage, recount, etc.) without going through a sale.\n\n'
-              'Accurate quantities and costs make order fulfillment and monthly COGS reliable.',
+              'Three kinds of rows:\n'
+              '• Product — what you resell on gift orders. Has a default sale price and can appear in New order and bundle presets.\n'
+              '• Customization supply & Utility — booth use (pens, sanitizer, etc.). They do not appear on gift orders; track stock and cost only.\n\n'
+              'Adding stock — tap the floating Add button, then choose:\n'
+              '• New catalog item — first time this SKU exists. Name, category, optional photo, optional first buy (price per piece, how many pieces, date), starting stock, low-stock alert, target, and for products: sale price and unit cost (COGS).\n'
+              '• Record purchase — you already have the item; you bought more. Pick the item, enter pieces bought, buy price per piece, purchase date, optional supplier and note. Stock goes up and a dated line is saved in Purchase history (receipt icon on the list, or open the item → Purchase history).\n\n'
+              'Search and filters: by product / supply / utility, or search by name, type, or supplier.\n\n'
+              'Edit item: change name, photo, category, supplier, thresholds, and for products sale price and COGS. For existing items you’ll also see shortcuts to Record purchase and Purchase history. Stock count itself is changed via Adjust stock or Record purchase — not by typing a new total in edit.\n\n'
+              'Adjust stock: add or remove units with a required reason (damage, count correction, booth use, etc.). Use this when it is not a normal buy with a price you want to remember; use Record purchase when you want stock plus a purchase record.\n\n'
+              'Accurate quantities, purchases, and COGS keep orders and monthly reports reliable.',
               style: bodySmall,
             ),
           ),
           _ExpandableGuide(
             title: 'Orders',
             child: Text(
-              'Gift orders tie revenue to inventory usage.\n\n'
-              '• New order: add one or more inventory lines, set quantity and sale price per line (defaults can come from the item). Enter customer name and optional personalized message, then submit.\n'
-              '• Bundle presets: save common combinations (e.g. “Standard hamper”) under Bundle presets. From New order you can apply a preset to fill lines in one step; the app checks stock before applying.\n'
-              '• After saving, each line reduces stock for that inventory item. Product revenue from orders flows into Money and Reports for the order date.\n\n'
-              'Use presets for speed; use one-off lines for custom bundles.',
+              'Gift orders tie revenue to product inventory only.\n\n'
+              '• New order: “Add product line” only lists in-stock products (resell items). Set quantity and sale price per line (defaults from the item or last price charged). Add customer name and optional message, then Place order.\n'
+              '• Bundle presets: Orders → Bundle presets. Build combos from products only — supplies and utilities are excluded so presets match what New order can sell. On New order, tap a preset chip to add those lines in one step; stock is checked first.\n'
+              '• After placing an order, stock drops for each line and product revenue shows in Money and Reports for that date.\n\n'
+              'Use presets for repeat bundles; use Add product line for one-off mixes.',
               style: bodySmall,
             ),
           ),
@@ -138,10 +142,11 @@ class HowToUseScreen extends StatelessWidget {
           Text('Tips', style: sectionTitle),
           const SizedBox(height: 8),
           Text(
-            '• Set low-stock thresholds when editing inventory so Home highlights what to reorder.\n'
-            '• Define bundle presets for packages you sell repeatedly.\n'
-            '• Enter photobooth revenue on the days you actually collect it so “today” and monthly totals match reality.\n'
-            '• Reconcile stock with “Adjust stock” after physical counts.',
+            '• Use Record purchase when you restock something you already sell — you keep one catalog row and a clear history of buys and prices.\n'
+            '• Set low-stock thresholds when editing items so Home highlights what to reorder.\n'
+            '• Bundle presets should only include products you actually ring up on gift orders.\n'
+            '• Enter photobooth revenue on the days you collect it so “today” and monthly totals match reality.\n'
+            '• After a physical count, use Adjust stock with reason “Count correction” (or similar).',
             style: bodySmall,
           ),
         ],

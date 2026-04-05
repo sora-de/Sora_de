@@ -60,12 +60,14 @@ If you **do not** add the secret, releases still work; you only need to paste `d
 
 ## 4. Ship a new version
 
-1. Edit **`pubspec.yaml`**: bump **both** parts, e.g. `version: 1.0.1+2` (`1.0.1` = version name, `2` = build number the app compares).
-2. Commit and push to `main`.
+1. Update the in-app guide: edit [`lib/screens/how_to_use_screen.dart`](lib/screens/how_to_use_screen.dart) so **How to use the app** (Settings) matches new behavior before you tag.
+2. Edit **`pubspec.yaml`**: bump **both** parts, e.g. `version: 1.0.1+2` (`1.0.1` = version name, `2` = build number the app compares).
+3. Commit and push to `main`.
 
 Then either:
 
-**A — Tag push (good for “this commit is the release”)**
+**A — Tag push (good for “this commit is the release”)**  
+(Steps 1–3 above should be in the same commit as the tag, or pushed before tagging.)
 
 ```powershell
 git tag v1.0.1-2
