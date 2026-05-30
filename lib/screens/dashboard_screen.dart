@@ -20,8 +20,23 @@ class DashboardScreen extends StatelessWidget {
       month: month,
       revenues: c.revenues,
       expenses: c.expenses,
+      dailySales: c.dailySales,
+      dailyCollections: c.dailyCollections,
     );
-    final todaySales = todayTotalSales(c.revenues, now);
+
+    final todayStaffSales = c.dailySales.where((s) {
+      return s.createdAt.year == now.year &&
+             s.createdAt.month == now.month &&
+             s.createdAt.day == now.day;
+    }).fold<double>(0, (sum, s) => sum + s.totalAmount);
+
+    final todayStaffCollections = c.dailyCollections.where((c) {
+      return c.date.year == now.year &&
+             c.date.month == now.month &&
+             c.date.day == now.day;
+    }).fold<double>(0, (sum, c) => sum + c.totalCollection);
+
+    final todaySales = todayTotalSales(c.revenues, now) + todayStaffSales + todayStaffCollections;
     final low = c.lowStockItems;
 
     return RefreshIndicator(

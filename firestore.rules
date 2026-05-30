@@ -2,17 +2,27 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    function getUserRole() {
+    function getUserDoc() {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid)) ?
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role : null;
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data : null;
+    }
+    
+    function getUserRole() {
+      let doc = getUserDoc();
+      return doc != null ? doc.role : null;
+    }
+
+    function isActive() {
+      let doc = getUserDoc();
+      return doc != null && (doc.isActive == null || doc.isActive == true);
     }
     
     function isAdmin() {
-      return request.auth != null && getUserRole() == 'admin';
+      return request.auth != null && isActive() && getUserRole() == 'admin';
     }
     
     function isStaff() {
-      return request.auth != null && getUserRole() == 'staff';
+      return request.auth != null && isActive() && getUserRole() == 'staff';
     }
     
     function isStaffOrAdmin() {
@@ -24,8 +34,9 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    match /users/{userId} {
-      allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    match /users/{userId}/{document=**} {
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow write: if request.auth != null && ((request.auth.uid == userId && isActive()) || isAdmin());
     }
 
     match /inventory/{document=**} {

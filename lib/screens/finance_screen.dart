@@ -61,12 +61,14 @@ class _RevenueTab extends StatelessWidget {
     final now = DateTime.now();
     final monthAnchor = DateTime(now.year, now.month);
 
-    final todayP = todayProductSales(c.revenues, now);
+    final todayP = todayProductSales(c.revenues, now, dailySales: c.dailySales, dailyCollections: c.dailyCollections);
     final todayB = todayPhotobooth(c.revenues, now);
     final monthBd = buildMonthlyBreakdown(
       month: monthAnchor,
       revenues: c.revenues,
       expenses: c.expenses,
+      dailySales: c.dailySales,
+      dailyCollections: c.dailyCollections,
     );
 
     return ListView(

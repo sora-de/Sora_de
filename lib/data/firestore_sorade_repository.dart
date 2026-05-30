@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sorade/core/constants.dart';
 import 'package:sorade/data/firestore_serializers.dart';
@@ -67,6 +70,8 @@ class FirestoreSoradeRepository extends SoradeRepository {
       _db.collection(_FsCollections.dailySales);
   CollectionReference<Map<String, dynamic>> get _dailyCollections =>
       _db.collection(_FsCollections.dailyCollections);
+  CollectionReference<Map<String, dynamic>> get _allUsers =>
+      _db.collection(_FsCollections.users);
 
   CollectionReference<Map<String, dynamic>> _purchases(String inventoryItemId) =>
       _inv.doc(inventoryItemId).collection(_FsCollections.inventoryPurchases);
@@ -80,7 +85,9 @@ class FirestoreSoradeRepository extends SoradeRepository {
   List<StockAdjustment> _stockAdjustments = [];
   List<DailySale> _dailySalesList = [];
   List<DailyCollection> _dailyCollectionsList = [];
+  List<UserRole> _allUsersList = [];
   UserRole? _currentUserRole;
+  bool _attachedOtherListeners = false;
 
   final List<StreamSubscription<dynamic>> _subs = [];
   void Function()? _onChanged;
@@ -89,10 +96,17 @@ class FirestoreSoradeRepository extends SoradeRepository {
   void attachListener(void Function() onChanged) {
     if (_subs.isNotEmpty) return;
     _onChanged = onChanged;
-    _subs.add(
-      _currentUserDoc.snapshots().listen((s) {
+
+    () async {
+      try {
+        final s = await _currentUserDoc.get(const GetOptions(source: Source.server));
+        print('FETCHED USER DOC: ${s.data()}');
         if (s.exists && s.data() != null) {
           _currentUserRole = FsUserRole.fromDoc(s.id, s.data()!);
+          if (s.data()!['role'] == null) {
+            _currentUserRole = _currentUserRole!.copyWith(role: 'admin');
+            await _currentUserDoc.set(FsUserRole.toMap(_currentUserRole!), SetOptions(merge: true));
+          }
         } else {
           _currentUserRole = UserRole(
             id: _uid,
@@ -101,11 +115,32 @@ class FirestoreSoradeRepository extends SoradeRepository {
             role: 'admin',
             createdAt: DateTime.now(),
           );
-          _currentUserDoc.set(FsUserRole.toMap(_currentUserRole!));
+          await _currentUserDoc.set(FsUserRole.toMap(_currentUserRole!));
         }
-        _onChanged?.call();
-      }),
-    );
+
+        if (!_attachedOtherListeners) {
+          _subs.add(
+            _currentUserDoc.snapshots().listen((snap) {
+              if (snap.exists && snap.data() != null) {
+                _currentUserRole = FsUserRole.fromDoc(snap.id, snap.data()!);
+                _onChanged?.call();
+              }
+            }, onError: (e) {
+              print('Error in _currentUserDoc listener: $e');
+            }),
+          );
+          _attachOtherListeners();
+        }
+      } catch (e) {
+        print('Error during initial role fetch/setup: $e');
+      }
+    }();
+  }
+
+  void _attachOtherListeners() {
+    if (_attachedOtherListeners) return;
+    _attachedOtherListeners = true;
+
     _subs.add(
       _inv.snapshots().listen((s) {
         _inventoryItems = s.docs
@@ -113,7 +148,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
             .toList()
           ..sort((a, b) => a.displayName.compareTo(b.displayName));
         _onChanged?.call();
-      }),
+      }, onError: (e) => print('Error in _inv listener: $e')),
     );
     _subs.add(
       _orders.snapshots().listen((s) {
@@ -122,26 +157,37 @@ class FirestoreSoradeRepository extends SoradeRepository {
             .toList()
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         _onChanged?.call();
-      }),
+      }, onError: (e) => print('Error in _orders listener: $e')),
     );
-    _subs.add(
-      _revenues.snapshots().listen((s) {
-        _revenuesList = s.docs
-            .map((d) => FsRevenue.fromDoc(d.id, d.data()))
-            .toList()
-          ..sort((a, b) => b.date.compareTo(a.date));
-        _onChanged?.call();
-      }),
-    );
-    _subs.add(
-      _expenses.snapshots().listen((s) {
-        _expensesList = s.docs
-            .map((d) => FsExpense.fromDoc(d.id, d.data()))
-            .toList()
-          ..sort((a, b) => b.date.compareTo(a.date));
-        _onChanged?.call();
-      }),
-    );
+    if (_currentUserRole?.isAdmin == true) {
+      _subs.add(
+        _revenues.snapshots().listen((s) {
+          _revenuesList = s.docs
+              .map((d) => FsRevenue.fromDoc(d.id, d.data()))
+              .toList()
+            ..sort((a, b) => b.date.compareTo(a.date));
+          _onChanged?.call();
+        }, onError: (e) => print('Error in _revenues listener: $e')),
+      );
+      _subs.add(
+        _expenses.snapshots().listen((s) {
+          _expensesList = s.docs
+              .map((d) => FsExpense.fromDoc(d.id, d.data()))
+              .toList()
+            ..sort((a, b) => b.date.compareTo(a.date));
+          _onChanged?.call();
+        }, onError: (e) => print('Error in _expenses listener: $e')),
+      );
+      _subs.add(
+        _allUsers.snapshots().listen((s) {
+          _allUsersList = s.docs
+              .map((d) => FsUserRole.fromDoc(d.id, d.data()))
+              .toList()
+            ..sort((a, b) => a.name.compareTo(b.name));
+          _onChanged?.call();
+        }, onError: (e) => print('Error in _allUsers listener: $e')),
+      );
+    }
     _subs.add(
       _presets.snapshots().listen((s) {
         _orderPresets = s.docs
@@ -149,7 +195,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
             .toList()
           ..sort((a, b) => a.name.compareTo(b.name));
         _onChanged?.call();
-      }),
+      }, onError: (e) => print('Error in _presets listener: $e')),
     );
     _subs.add(
       _meta.snapshots().listen((s) {
@@ -161,7 +207,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
             ),
           );
         _onChanged?.call();
-      }),
+      }, onError: (e) => print('Error in _meta listener: $e')),
     );
     _subs.add(
       _stock.snapshots().listen((s) {
@@ -170,7 +216,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
             .toList()
           ..sort((a, b) => b.date.compareTo(a.date));
         _onChanged?.call();
-      }),
+      }, onError: (e) => print('Error in _stock listener: $e')),
     );
     _subs.add(
       _dailySales.snapshots().listen((s) {
@@ -179,7 +225,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
             .toList()
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         _onChanged?.call();
-      }),
+      }, onError: (e) => print('Error in _dailySales listener: $e')),
     );
     _subs.add(
       _dailyCollections.snapshots().listen((s) {
@@ -188,7 +234,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
             .toList()
           ..sort((a, b) => b.date.compareTo(a.date));
         _onChanged?.call();
-      }),
+      }, onError: (e) => print('Error in _dailyCollections listener: $e')),
     );
   }
 
@@ -199,6 +245,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
     }
     _subs.clear();
     _onChanged = null;
+    _attachedOtherListeners = false;
   }
 
   @override
@@ -229,6 +276,9 @@ class FirestoreSoradeRepository extends SoradeRepository {
   @override
   List<DailyCollection> get dailyCollections =>
       List.unmodifiable(_dailyCollectionsList);
+
+  @override
+  List<UserRole> get allUsers => List.unmodifiable(_allUsersList);
 
   @override
   InventoryMeta inventoryMetaFor(String inventoryItemId) {
@@ -575,5 +625,49 @@ class FirestoreSoradeRepository extends SoradeRepository {
   @override
   Future<void> submitDailyCollection(DailyCollection collection) async {
     await _dailyCollections.doc(collection.id).set(FsDailyCollection.toMap(collection));
+  }
+
+  @override
+  Future<void> updateDailyCollection(DailyCollection collection) async {
+    await _dailyCollections.doc(collection.id).update(FsDailyCollection.toMap(collection));
+  }
+
+  @override
+  Future<void> deleteDailyCollection(String id) async {
+    await _dailyCollections.doc(id).delete();
+  }
+
+  @override
+  Future<void> toggleUserStatus(String uid, bool isActive) async {
+    await _allUsers.doc(uid).update({'isActive': isActive});
+  }
+
+  @override
+  Future<void> createUserAccount(String email, String password, String name, String role) async {
+    FirebaseApp? secondaryApp;
+    try {
+      secondaryApp = await Firebase.initializeApp(
+        name: 'SecondaryApp_${_uuid.v4()}',
+        options: Firebase.app().options,
+      );
+      final auth = FirebaseAuth.instanceFor(app: secondaryApp);
+      final cred = await auth.createUserWithEmailAndPassword(email: email, password: password);
+      final newUid = cred.user!.uid;
+
+      final newUser = UserRole(
+        id: newUid,
+        name: name,
+        email: email,
+        role: role,
+        createdAt: DateTime.now(),
+        isActive: true,
+      );
+
+      await _allUsers.doc(newUid).set(FsUserRole.toMap(newUser));
+    } finally {
+      if (secondaryApp != null) {
+        await secondaryApp.delete();
+      }
+    }
   }
 }

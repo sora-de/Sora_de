@@ -33,6 +33,20 @@ class DailyCollectionStaffScreen extends StatelessWidget {
       items += s.quantity;
     }
 
+    final todayCollections = controller.dailyCollections.where((c) {
+      return c.date.year == today.year &&
+             c.date.month == today.month &&
+             c.date.day == today.day &&
+             c.submittedBy == controller.currentUserRole?.id;
+    }).toList();
+
+    double totalSubmitted = 0;
+    double cashSubmitted = 0;
+    for (final c in todayCollections) {
+      totalSubmitted += c.totalCollection;
+      cashSubmitted += c.cashAmount;
+    }
+
     return Scaffold(
       body: Column(
         children: [
@@ -47,6 +61,16 @@ class DailyCollectionStaffScreen extends StatelessWidget {
                   children: [
                     Text('Today\'s Total', style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.onPrimaryContainer)),
                     Text('₹${total.toStringAsFixed(2)}', style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: Theme.of(context).colorScheme.onPrimaryContainer)),
+                    if (totalSubmitted > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          'Submitted: ₹${totalSubmitted.toStringAsFixed(2)} (Cash: ₹${cashSubmitted.toStringAsFixed(2)})',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
                 Column(

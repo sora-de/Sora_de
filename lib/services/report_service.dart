@@ -3,6 +3,8 @@ import 'package:sorade/models/expense.dart';
 import 'package:sorade/models/gift_order.dart';
 import 'package:sorade/models/monthly_report.dart';
 import 'package:sorade/models/revenue.dart';
+import 'package:sorade/models/daily_sale.dart';
+import 'package:sorade/models/daily_collection.dart';
 
 double calculateProfit(List<Revenue> revenues, List<Expense> expenses) {
   final totalRevenue = revenues.fold<double>(0, (sum, item) => sum + item.amount);
@@ -14,16 +16,26 @@ MonthlyReport generateMonthlyReport({
   required DateTime month,
   required List<Revenue> revenues,
   required List<Expense> expenses,
+  List<DailySale> dailySales = const [],
+  List<DailyCollection> dailyCollections = const [],
 }) {
   final monthlyRevenue = revenues.where(
     (r) => r.date.month == month.month && r.date.year == month.year,
+  );
+  final monthlySales = dailySales.where(
+    (s) => s.createdAt.month == month.month && s.createdAt.year == month.year,
+  );
+  final monthlyCollections = dailyCollections.where(
+    (c) => c.date.month == month.month && c.date.year == month.year,
   );
   final monthlyExpenses = expenses.where(
     (e) => e.date.month == month.month && e.date.year == month.year,
   );
 
   final totalRevenue =
-      monthlyRevenue.fold<double>(0, (sum, r) => sum + r.amount);
+      monthlyRevenue.fold<double>(0, (sum, r) => sum + r.amount) +
+      monthlySales.fold<double>(0, (sum, s) => sum + s.totalAmount) +
+      monthlyCollections.fold<double>(0, (sum, c) => sum + c.totalCollection);
   final totalExpenses =
       monthlyExpenses.fold<double>(0, (sum, e) => sum + e.amount);
 
@@ -56,6 +68,8 @@ ReportBreakdown buildMonthlyBreakdown({
   required DateTime month,
   required List<Revenue> revenues,
   required List<Expense> expenses,
+  List<DailySale> dailySales = const [],
+  List<DailyCollection> dailyCollections = const [],
 }) {
   bool inMonth(DateTime d) =>
       d.month == month.month && d.year == month.year;
@@ -70,6 +84,16 @@ ReportBreakdown buildMonthlyBreakdown({
       booth += r.amount;
     } else {
       product += r.amount;
+    }
+  }
+  for (final s in dailySales) {
+    if (inMonth(s.createdAt)) {
+      product += s.totalAmount;
+    }
+  }
+  for (final c in dailyCollections) {
+    if (inMonth(c.date)) {
+      product += c.totalCollection;
     }
   }
 
@@ -115,8 +139,11 @@ Map<String, int> inventoryUsageForMonth({
   return usage;
 }
 
-double todayProductSales(List<Revenue> revenues, DateTime now) {
-  return revenues
+double todayProductSales(List<Revenue> revenues, DateTime now, {
+  List<DailySale> dailySales = const [],
+  List<DailyCollection> dailyCollections = const [],
+}) {
+  final revenueSum = revenues
       .where(
         (r) =>
             r.source == RevenueSources.product &&
@@ -125,6 +152,20 @@ double todayProductSales(List<Revenue> revenues, DateTime now) {
             r.date.day == now.day,
       )
       .fold<double>(0, (s, r) => s + r.amount);
+
+  final staffSalesSum = dailySales
+      .where((s) => s.createdAt.year == now.year &&
+                    s.createdAt.month == now.month &&
+                    s.createdAt.day == now.day)
+      .fold<double>(0, (sum, s) => sum + s.totalAmount);
+
+  final staffCollectionsSum = dailyCollections
+      .where((c) => c.date.year == now.year &&
+                    c.date.month == now.month &&
+                    c.date.day == now.day)
+      .fold<double>(0, (sum, c) => sum + c.totalCollection);
+
+  return revenueSum + staffSalesSum + staffCollectionsSum;
 }
 
 double todayPhotobooth(List<Revenue> revenues, DateTime now) {
@@ -139,8 +180,11 @@ double todayPhotobooth(List<Revenue> revenues, DateTime now) {
       .fold<double>(0, (s, r) => s + r.amount);
 }
 
-double todayTotalSales(List<Revenue> revenues, DateTime now) {
-  return todayProductSales(revenues, now) + todayPhotobooth(revenues, now);
+double todayTotalSales(List<Revenue> revenues, DateTime now, {
+  List<DailySale> dailySales = const [],
+  List<DailyCollection> dailyCollections = const [],
+}) {
+  return todayProductSales(revenues, now, dailySales: dailySales, dailyCollections: dailyCollections) + todayPhotobooth(revenues, now);
 }
 
 bool _inMonth(DateTime d, DateTime month) =>

@@ -94,50 +94,53 @@ class SoradeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      onGenerateTitle: (context) =>
-          AppLocalizations.of(context)?.appTitle ?? 'Sora de',
-      theme: buildSoraDeTheme(),
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ],
-      supportedLocales: AppLocalizations.supportedLocales,
-      builder: (context, child) {
-        final data = MediaQuery.of(context);
-        final scaled = data.textScaler.clamp(
-          minScaleFactor: 0.85,
-          maxScaleFactor: 2.4,
-        );
-        return MediaQuery(
-          data: data.copyWith(textScaler: scaled),
-          child: child ?? const SizedBox.shrink(),
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snap) {
+        final user = snap.data;
+        return MaterialApp(
+          onGenerateTitle: (context) =>
+              AppLocalizations.of(context)?.appTitle ?? 'Sora de',
+          theme: buildSoraDeTheme(),
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          builder: (context, child) {
+            final data = MediaQuery.of(context);
+            final scaled = data.textScaler.clamp(
+              minScaleFactor: 0.85,
+              maxScaleFactor: 2.4,
+            );
+            final mqChild = MediaQuery(
+              data: data.copyWith(textScaler: scaled),
+              child: child ?? const SizedBox.shrink(),
+            );
+            
+            if (user != null) {
+              return ChangeNotifierProvider(
+                key: ValueKey(user.uid),
+                create: (_) => SoradeController(
+                  FirestoreSoradeRepository(uid: user.uid),
+                ),
+                child: mqChild,
+              );
+            }
+            return mqChild;
+          },
+          home: snap.connectionState == ConnectionState.waiting
+              ? const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                )
+              : user == null
+                  ? const AuthScreen()
+                  : _WelcomeGate(prefs: prefs),
+          debugShowCheckedModeBanner: false,
         );
       },
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-          final user = snap.data;
-          if (user == null) {
-            return const AuthScreen();
-          }
-          return ChangeNotifierProvider(
-            key: ValueKey(user.uid),
-            create: (_) => SoradeController(
-              FirestoreSoradeRepository(uid: user.uid),
-            ),
-            child: _WelcomeGate(prefs: prefs),
-          );
-        },
-      ),
-      debugShowCheckedModeBanner: false,
     );
   }
 }

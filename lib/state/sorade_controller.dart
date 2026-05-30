@@ -40,6 +40,7 @@ class SoradeController extends ChangeNotifier {
   UserRole? get currentUserRole => _repo.currentUserRole;
   List<DailySale> get dailySales => _repo.dailySales;
   List<DailyCollection> get dailyCollections => _repo.dailyCollections;
+  List<UserRole> get allUsers => _repo.allUsers;
 
   List<InventoryItem> get lowStockItems =>
       inventoryItems.where((e) => e.isLowStock).toList();
@@ -65,6 +66,21 @@ class SoradeController extends ChangeNotifier {
 
   Future<void> putInventoryMeta(String id, InventoryMeta meta) async {
     await _repo.putInventoryMeta(id, meta);
+    notifyListeners();
+  }
+
+  Future<void> deleteDailyCollection(String id) async {
+    await _repo.deleteDailyCollection(id);
+    notifyListeners();
+  }
+
+  Future<void> toggleUserStatus(String uid, bool isActive) async {
+    await _repo.toggleUserStatus(uid, isActive);
+    notifyListeners();
+  }
+
+  Future<void> createUserAccount(String email, String password, String name, String role) async {
+    await _repo.createUserAccount(email, password, name, role);
     notifyListeners();
   }
 

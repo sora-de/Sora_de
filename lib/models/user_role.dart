@@ -8,6 +8,7 @@ class UserRole {
     required this.email,
     required this.role,
     required this.createdAt,
+    this.isActive = true,
   });
 
   final String id;
@@ -15,6 +16,7 @@ class UserRole {
   final String email;
   final String role; // "admin" or "staff"
   final DateTime createdAt;
+  final bool isActive;
 
   UserRole copyWith({
     String? id,
@@ -22,6 +24,7 @@ class UserRole {
     String? email,
     String? role,
     DateTime? createdAt,
+    bool? isActive,
   }) {
     return UserRole(
       id: id ?? this.id,
@@ -29,6 +32,7 @@ class UserRole {
       email: email ?? this.email,
       role: role ?? this.role,
       createdAt: createdAt ?? this.createdAt,
+      isActive: isActive ?? this.isActive,
     );
   }
 

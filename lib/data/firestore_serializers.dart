@@ -304,6 +304,7 @@ class FsUserRole {
       'email': role.email,
       'role': role.role,
       'createdAt': Timestamp.fromDate(role.createdAt),
+      'isActive': role.isActive,
     };
   }
 
@@ -313,6 +314,7 @@ class FsUserRole {
       name: m['name'] as String? ?? '',
       email: m['email'] as String? ?? '',
       role: m['role'] as String? ?? 'staff',
+      isActive: m['isActive'] as bool? ?? true,
       createdAt: _readDate(m['createdAt']),
     );
   }

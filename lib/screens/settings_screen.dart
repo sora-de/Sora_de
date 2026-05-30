@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:sorade/core/brand_colors.dart';
 import 'package:sorade/screens/how_to_use_screen.dart';
 import 'package:sorade/services/app_update_service.dart';
+import 'package:sorade/services/data_migration_service.dart';
 import 'package:sorade/services/storage_probe.dart';
+import 'package:sorade/state/sorade_controller.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -23,6 +26,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _passwordMessage;
   bool _passwordSuccess = false;
   bool _storageProbeBusy = false;
+  bool _migrationBusy = false;
 
   AppVersionSnapshot? _versionSnap;
   bool _versionLoading = true;
@@ -156,6 +160,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _runMigration() async {
+    setState(() => _migrationBusy = true);
+    try {
+      await DataMigrationService.migrateOldDataToTopLevel();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Migration completed successfully!')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Migration failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _migrationBusy = false);
+    }
+  }
+
   String _mapPasswordError(FirebaseAuthException e) {
     switch (e.code) {
       case 'wrong-password':
@@ -168,6 +190,94 @@ class _SettingsScreenState extends State<SettingsScreen> {
       default:
         return e.message ?? e.code;
     }
+  }
+
+  void _showAddUserDialog(BuildContext context, SoradeController controller) {
+    final emailCtrl = TextEditingController();
+    final pwdCtrl = TextEditingController();
+    final nameCtrl = TextEditingController();
+    String role = 'staff';
+    bool busy = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            title: const Text('Add new user'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: emailCtrl,
+                    decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: pwdCtrl,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: role,
+                    decoration: const InputDecoration(labelText: 'Role', border: OutlineInputBorder()),
+                    items: const [
+                      DropdownMenuItem(value: 'staff', child: Text('Staff')),
+                      DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                    ],
+                    onChanged: (v) => setDialogState(() => role = v ?? 'staff'),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: busy ? null : () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: busy
+                    ? null
+                    : () async {
+                        if (emailCtrl.text.isEmpty || pwdCtrl.text.isEmpty || nameCtrl.text.isEmpty) return;
+                        setDialogState(() => busy = true);
+                        try {
+                          await controller.createUserAccount(
+                            emailCtrl.text.trim(),
+                            pwdCtrl.text,
+                            nameCtrl.text.trim(),
+                            role,
+                          );
+                          if (!ctx.mounted) return;
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('User created successfully')),
+                          );
+                        } catch (e) {
+                          setDialogState(() => busy = false);
+                          if (!ctx.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed: $e')),
+                          );
+                        }
+                      },
+                child: busy
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Create'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -258,6 +368,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                 ),
+              );
+            },
+          ),
+          Consumer<SoradeController>(
+            builder: (context, controller, _) {
+              if (controller.currentUserRole?.isAdmin != true) {
+                return const SizedBox.shrink();
+              }
+              final users = controller.allUsers;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 28),
+                  Text(
+                    'User Management',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: BrandColors.primaryGreen,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Card(
+                    child: Column(
+                      children: [
+                        for (final user in users)
+                          ListTile(
+                            leading: Icon(
+                              user.isAdmin ? Icons.admin_panel_settings : Icons.person,
+                              color: user.isActive ? cs.primary : cs.onSurfaceVariant,
+                            ),
+                            title: Text('${user.name} (${user.role})'),
+                            subtitle: Text(user.email),
+                            trailing: Switch(
+                              value: user.isActive,
+                              onChanged: user.id == controller.currentUserRole?.id
+                                  ? null // Prevent deactivating self
+                                  : (val) => controller.toggleUserStatus(user.id, val),
+                            ),
+                          ),
+                        const Divider(height: 1),
+                        ListTile(
+                          leading: const Icon(Icons.person_add),
+                          title: const Text('Add new user'),
+                          onTap: () => _showAddUserDialog(context, controller),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               );
             },
           ),
@@ -447,6 +606,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       )
                     : const Icon(Icons.chevron_right),
                 onTap: _storageProbeBusy ? null : _runStorageProbe,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              child: ListTile(
+                leading: Icon(Icons.sync, color: cs.primary),
+                title: const Text('Migrate old private data'),
+                subtitle: Text(
+                  'Copies your old data to the new shared business collections. Only do this once.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                ),
+                trailing: _migrationBusy
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.chevron_right),
+                onTap: _migrationBusy ? null : _runMigration,
               ),
             ),
           ],

@@ -10,7 +10,6 @@ import 'package:sorade/screens/settings_screen.dart';
 import 'package:sorade/screens/daily_collection_staff_screen.dart';
 import 'package:sorade/screens/daily_collection_admin_screen.dart';
 import 'package:sorade/state/sorade_controller.dart';
-import 'package:sorade/widgets/local_data_banner.dart';
 
 class ShellScreen extends StatefulWidget {
   const ShellScreen({super.key});
@@ -29,7 +28,7 @@ class _ShellScreenState extends State<ShellScreen> {
 
     final titles = isAdmin
         ? ['Dashboard', 'Inventory', 'Orders', 'Money', 'Reports', 'Collections']
-        : ['Daily Sales', 'Inventory', 'Orders'];
+        : ['Daily Sales', 'Inventory', 'Orders', 'Collections'];
 
     final screens = isAdmin
         ? const [
@@ -44,6 +43,7 @@ class _ShellScreenState extends State<ShellScreen> {
             DailyCollectionStaffScreen(),
             InventoryScreen(),
             OrdersScreen(),
+            DailyCollectionAdminScreen(),
           ];
 
     final destinations = isAdmin
@@ -59,6 +59,7 @@ class _ShellScreenState extends State<ShellScreen> {
             NavigationDestination(icon: Icon(Icons.point_of_sale_outlined), selectedIcon: Icon(Icons.point_of_sale), label: 'Sales'),
             NavigationDestination(icon: Icon(Icons.inventory_2_outlined), selectedIcon: Icon(Icons.inventory_2), label: 'Stock'),
             NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
+            NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Collections'),
           ];
 
     final activeIndex = _index >= screens.length ? 0 : _index;
@@ -88,8 +89,7 @@ class _ShellScreenState extends State<ShellScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const LocalDataBanner(),
-          const Divider(height: 1),
+
           Expanded(
             child: IndexedStack(
               index: activeIndex,

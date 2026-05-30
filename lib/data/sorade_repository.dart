@@ -30,6 +30,7 @@ abstract class SoradeRepository {
   UserRole? get currentUserRole;
   List<DailySale> get dailySales;
   List<DailyCollection> get dailyCollections;
+  List<UserRole> get allUsers;
 
   InventoryMeta inventoryMetaFor(String inventoryItemId);
 
@@ -92,6 +93,12 @@ abstract class SoradeRepository {
   Future<void> addDailySale(DailySale sale, {bool deductInventory = false});
   
   Future<void> submitDailyCollection(DailyCollection collection);
+
+  Future<void> updateDailyCollection(DailyCollection collection);
+  Future<void> deleteDailyCollection(String id);
+
+  Future<void> toggleUserStatus(String uid, bool isActive);
+  Future<void> createUserAccount(String email, String password, String name, String role);
 
   /// Wire remote snapshot updates to [SoradeController.notifyListeners].
   void attachListener(void Function() onChanged) {}
