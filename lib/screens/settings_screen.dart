@@ -226,6 +226,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 12),
+                  // ignore: deprecated_member_use
                   DropdownButtonFormField<String>(
                     value: role,
                     decoration: const InputDecoration(labelText: 'Role', border: OutlineInputBorder()),

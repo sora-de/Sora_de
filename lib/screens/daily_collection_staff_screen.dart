@@ -67,7 +67,7 @@ class DailyCollectionStaffScreen extends StatelessWidget {
                         child: Text(
                           'Submitted: ₹${totalSubmitted.toStringAsFixed(2)} (Cash: ₹${cashSubmitted.toStringAsFixed(2)})',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+                            color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
                           ),
                         ),
                       ),

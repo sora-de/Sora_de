@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
@@ -100,7 +101,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
     () async {
       try {
         final s = await _currentUserDoc.get(const GetOptions(source: Source.server));
-        print('FETCHED USER DOC: ${s.data()}');
+        debugPrint('FETCHED USER DOC: ${s.data()}');
         if (s.exists && s.data() != null) {
           _currentUserRole = FsUserRole.fromDoc(s.id, s.data()!);
           if (s.data()!['role'] == null) {
@@ -126,13 +127,13 @@ class FirestoreSoradeRepository extends SoradeRepository {
                 _onChanged?.call();
               }
             }, onError: (e) {
-              print('Error in _currentUserDoc listener: $e');
+              debugPrint('Error in _currentUserDoc listener: $e');
             }),
           );
           _attachOtherListeners();
         }
       } catch (e) {
-        print('Error during initial role fetch/setup: $e');
+        debugPrint('Error during initial role fetch/setup: $e');
       }
     }();
   }
@@ -148,7 +149,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
             .toList()
           ..sort((a, b) => a.displayName.compareTo(b.displayName));
         _onChanged?.call();
-      }, onError: (e) => print('Error in _inv listener: $e')),
+      }, onError: (e) => debugPrint('Error in _inv listener: $e')),
     );
     _subs.add(
       _orders.snapshots().listen((s) {
@@ -157,7 +158,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
             .toList()
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         _onChanged?.call();
-      }, onError: (e) => print('Error in _orders listener: $e')),
+      }, onError: (e) => debugPrint('Error in _orders listener: $e')),
     );
     if (_currentUserRole?.isAdmin == true) {
       _subs.add(
@@ -167,7 +168,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
               .toList()
             ..sort((a, b) => b.date.compareTo(a.date));
           _onChanged?.call();
-        }, onError: (e) => print('Error in _revenues listener: $e')),
+        }, onError: (e) => debugPrint('Error in _revenues listener: $e')),
       );
       _subs.add(
         _expenses.snapshots().listen((s) {
@@ -176,7 +177,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
               .toList()
             ..sort((a, b) => b.date.compareTo(a.date));
           _onChanged?.call();
-        }, onError: (e) => print('Error in _expenses listener: $e')),
+        }, onError: (e) => debugPrint('Error in _expenses listener: $e')),
       );
       _subs.add(
         _allUsers.snapshots().listen((s) {
@@ -185,7 +186,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
               .toList()
             ..sort((a, b) => a.name.compareTo(b.name));
           _onChanged?.call();
-        }, onError: (e) => print('Error in _allUsers listener: $e')),
+        }, onError: (e) => debugPrint('Error in _allUsers listener: $e')),
       );
     }
     _subs.add(
@@ -195,7 +196,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
             .toList()
           ..sort((a, b) => a.name.compareTo(b.name));
         _onChanged?.call();
-      }, onError: (e) => print('Error in _presets listener: $e')),
+      }, onError: (e) => debugPrint('Error in _presets listener: $e')),
     );
     _subs.add(
       _meta.snapshots().listen((s) {
@@ -207,7 +208,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
             ),
           );
         _onChanged?.call();
-      }, onError: (e) => print('Error in _meta listener: $e')),
+      }, onError: (e) => debugPrint('Error in _meta listener: $e')),
     );
     _subs.add(
       _stock.snapshots().listen((s) {
@@ -216,7 +217,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
             .toList()
           ..sort((a, b) => b.date.compareTo(a.date));
         _onChanged?.call();
-      }, onError: (e) => print('Error in _stock listener: $e')),
+      }, onError: (e) => debugPrint('Error in _stock listener: $e')),
     );
     _subs.add(
       _dailySales.snapshots().listen((s) {
@@ -225,7 +226,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
             .toList()
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         _onChanged?.call();
-      }, onError: (e) => print('Error in _dailySales listener: $e')),
+      }, onError: (e) => debugPrint('Error in _dailySales listener: $e')),
     );
     _subs.add(
       _dailyCollections.snapshots().listen((s) {
@@ -234,7 +235,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
             .toList()
           ..sort((a, b) => b.date.compareTo(a.date));
         _onChanged?.call();
-      }, onError: (e) => print('Error in _dailyCollections listener: $e')),
+      }, onError: (e) => debugPrint('Error in _dailyCollections listener: $e')),
     );
   }
 
