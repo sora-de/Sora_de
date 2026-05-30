@@ -25,7 +25,7 @@ class HowToUseScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
           Text(
-            'Sora de helps you run gifting and photobooth sales: stock, customer orders, money in/out, and monthly reports. Everything below the top bar is organized in five tabs.',
+            'Sora de helps you run gifting and photobooth sales. Admins have full access to reports and finances, while Staff focus on daily sales, inventory, and orders. Use the bottom navigation to move between sections.',
             style: bodySmall,
           ),
           const SizedBox(height: 20),
@@ -62,13 +62,33 @@ class HowToUseScreen extends StatelessWidget {
                 'Use Reports to move between calendar months, see COGS, gross margin on product sales, inventory usage, and export CSV to share or archive.',
           ),
           const SizedBox(height: 16),
+          Text('Roles & Access', style: sectionTitle),
+          const SizedBox(height: 8),
+          _ExpandableGuide(
+            title: 'Admin vs Staff',
+            child: Text(
+              '• Admins have full access to Dashboard, Money (revenue & expenses), and Reports.\n'
+              '• Staff have a simplified view focused on Daily Sales, Stock, Orders, and submitting Collections.\n'
+              '• Manage users and roles from the Account & settings screen (person icon).',
+              style: bodySmall,
+            ),
+          ),
+          const SizedBox(height: 16),
           Text('Bottom navigation', style: sectionTitle),
           const SizedBox(height: 8),
           _ExpandableGuide(
-            title: 'Home (Dashboard)',
+            title: 'Home / Sales',
             child: Text(
-              'Snapshot of the business: today’s total sales, this month’s revenue and expenses, accessible profit summary, and a list of items that are low on stock.\n\n'
-              'Pull to refresh if you want to force the latest data from Firebase. Low-stock items link back to inventory levels you set on each product.',
+              'Admins see the Dashboard: a snapshot of the business with today’s sales, monthly revenue/expenses, and low-stock alerts.\n\n'
+              'Staff see Daily Sales: add individual sales as they happen, and track total items sold for the day.',
+              style: bodySmall,
+            ),
+          ),
+          _ExpandableGuide(
+            title: 'Collections',
+            child: Text(
+              'Staff use this to submit their end-of-day takings (Cash, UPI, Card, etc.). '
+              'Admins use this to review all staff submissions, making sure the cash collected matches the total sales recorded.',
               style: bodySmall,
             ),
           ),
