@@ -73,7 +73,7 @@ class _AddSaleEntryScreenState extends State<AddSaleEntryScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _category,
+              initialValue: _category,
               decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
               items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
               onChanged: (v) => setState(() => _category = v!),
@@ -102,7 +102,7 @@ class _AddSaleEntryScreenState extends State<AddSaleEntryScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _paymentMethod,
+              initialValue: _paymentMethod,
               decoration: const InputDecoration(labelText: 'Payment Method', border: OutlineInputBorder()),
               items: _paymentMethods.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
               onChanged: (v) => setState(() => _paymentMethod = v!),
