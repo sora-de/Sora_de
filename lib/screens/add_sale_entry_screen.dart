@@ -72,8 +72,9 @@ class _AddSaleEntryScreenState extends State<AddSaleEntryScreen> {
               validator: (v) => v == null || v.isEmpty ? 'Required' : null,
             ),
             const SizedBox(height: 16),
+            // ignore: deprecated_member_use
             DropdownButtonFormField<String>(
-              initialValue: _category,
+              value: _category,
               decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
               items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
               onChanged: (v) => setState(() => _category = v!),
@@ -101,8 +102,9 @@ class _AddSaleEntryScreenState extends State<AddSaleEntryScreen> {
               ],
             ),
             const SizedBox(height: 16),
+            // ignore: deprecated_member_use
             DropdownButtonFormField<String>(
-              initialValue: _paymentMethod,
+              value: _paymentMethod,
               decoration: const InputDecoration(labelText: 'Payment Method', border: OutlineInputBorder()),
               items: _paymentMethods.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
               onChanged: (v) => setState(() => _paymentMethod = v!),
