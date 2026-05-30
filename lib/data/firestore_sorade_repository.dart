@@ -13,6 +13,9 @@ import 'package:sorade/models/order_line.dart';
 import 'package:sorade/models/order_preset.dart';
 import 'package:sorade/models/revenue.dart';
 import 'package:sorade/models/stock_adjustment.dart';
+import 'package:sorade/models/user_role.dart';
+import 'package:sorade/models/daily_sale.dart';
+import 'package:sorade/models/daily_collection.dart';
 import 'package:sorade/services/inventory_photo_storage.dart';
 import 'package:uuid/uuid.dart';
 
@@ -25,6 +28,9 @@ abstract final class _FsCollections {
   static const inventoryMeta = 'inventory_meta';
   static const stockAdjustments = 'stock_adjustments';
   static const inventoryPurchases = 'purchases';
+  static const dailySales = 'daily_sales';
+  static const dailyCollections = 'daily_collections';
+  static const users = 'users';
 }
 
 class FirestoreSoradeRepository extends SoradeRepository {
@@ -40,23 +46,27 @@ class FirestoreSoradeRepository extends SoradeRepository {
   final FirebaseFirestore _db;
   final Uuid _uuid;
 
-  DocumentReference<Map<String, dynamic>> get _userDoc =>
-      _db.collection('users').doc(_uid);
+  DocumentReference<Map<String, dynamic>> get _currentUserDoc =>
+      _db.collection(_FsCollections.users).doc(_uid);
 
   CollectionReference<Map<String, dynamic>> get _inv =>
-      _userDoc.collection(_FsCollections.inventory);
+      _db.collection(_FsCollections.inventory);
   CollectionReference<Map<String, dynamic>> get _orders =>
-      _userDoc.collection(_FsCollections.giftOrders);
+      _db.collection(_FsCollections.giftOrders);
   CollectionReference<Map<String, dynamic>> get _revenues =>
-      _userDoc.collection(_FsCollections.revenues);
+      _db.collection(_FsCollections.revenues);
   CollectionReference<Map<String, dynamic>> get _expenses =>
-      _userDoc.collection(_FsCollections.expenses);
+      _db.collection(_FsCollections.expenses);
   CollectionReference<Map<String, dynamic>> get _presets =>
-      _userDoc.collection(_FsCollections.orderPresets);
+      _db.collection(_FsCollections.orderPresets);
   CollectionReference<Map<String, dynamic>> get _meta =>
-      _userDoc.collection(_FsCollections.inventoryMeta);
+      _db.collection(_FsCollections.inventoryMeta);
   CollectionReference<Map<String, dynamic>> get _stock =>
-      _userDoc.collection(_FsCollections.stockAdjustments);
+      _db.collection(_FsCollections.stockAdjustments);
+  CollectionReference<Map<String, dynamic>> get _dailySales =>
+      _db.collection(_FsCollections.dailySales);
+  CollectionReference<Map<String, dynamic>> get _dailyCollections =>
+      _db.collection(_FsCollections.dailyCollections);
 
   CollectionReference<Map<String, dynamic>> _purchases(String inventoryItemId) =>
       _inv.doc(inventoryItemId).collection(_FsCollections.inventoryPurchases);
@@ -68,14 +78,34 @@ class FirestoreSoradeRepository extends SoradeRepository {
   List<OrderPreset> _orderPresets = [];
   final Map<String, InventoryMeta> _metaMap = {};
   List<StockAdjustment> _stockAdjustments = [];
+  List<DailySale> _dailySalesList = [];
+  List<DailyCollection> _dailyCollectionsList = [];
+  UserRole? _currentUserRole;
 
-  final List<StreamSubscription<QuerySnapshot<Map<String, dynamic>>>> _subs = [];
+  final List<StreamSubscription<dynamic>> _subs = [];
   void Function()? _onChanged;
 
   @override
   void attachListener(void Function() onChanged) {
     if (_subs.isNotEmpty) return;
     _onChanged = onChanged;
+    _subs.add(
+      _currentUserDoc.snapshots().listen((s) {
+        if (s.exists && s.data() != null) {
+          _currentUserRole = FsUserRole.fromDoc(s.id, s.data()!);
+        } else {
+          _currentUserRole = UserRole(
+            id: _uid,
+            name: 'User',
+            email: '',
+            role: 'admin',
+            createdAt: DateTime.now(),
+          );
+          _currentUserDoc.set(FsUserRole.toMap(_currentUserRole!));
+        }
+        _onChanged?.call();
+      }),
+    );
     _subs.add(
       _inv.snapshots().listen((s) {
         _inventoryItems = s.docs
@@ -142,6 +172,24 @@ class FirestoreSoradeRepository extends SoradeRepository {
         _onChanged?.call();
       }),
     );
+    _subs.add(
+      _dailySales.snapshots().listen((s) {
+        _dailySalesList = s.docs
+            .map((d) => FsDailySale.fromDoc(d.id, d.data()))
+            .toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        _onChanged?.call();
+      }),
+    );
+    _subs.add(
+      _dailyCollections.snapshots().listen((s) {
+        _dailyCollectionsList = s.docs
+            .map((d) => FsDailyCollection.fromDoc(d.id, d.data()))
+            .toList()
+          ..sort((a, b) => b.date.compareTo(a.date));
+        _onChanged?.call();
+      }),
+    );
   }
 
   @override
@@ -171,6 +219,16 @@ class FirestoreSoradeRepository extends SoradeRepository {
   @override
   List<StockAdjustment> get stockAdjustments =>
       List.unmodifiable(_stockAdjustments);
+
+  @override
+  UserRole? get currentUserRole => _currentUserRole;
+
+  @override
+  List<DailySale> get dailySales => List.unmodifiable(_dailySalesList);
+
+  @override
+  List<DailyCollection> get dailyCollections =>
+      List.unmodifiable(_dailyCollectionsList);
 
   @override
   InventoryMeta inventoryMetaFor(String inventoryItemId) {
@@ -471,5 +529,51 @@ class FirestoreSoradeRepository extends SoradeRepository {
   @override
   Future<void> deleteExpense(String id) async {
     await _expenses.doc(id).delete();
+  }
+
+  @override
+  Future<void> addDailySale(DailySale sale, {bool deductInventory = false}) async {
+    await _db.runTransaction((txn) async {
+      txn.set(_dailySales.doc(sale.id), FsDailySale.toMap(sale));
+
+      if (deductInventory) {
+        // Find inventory item by product name
+        final snap = await _inv.where('name', isEqualTo: sale.productName).limit(1).get();
+        if (snap.docs.isNotEmpty) {
+          final doc = snap.docs.first;
+          final item = FsInventory.fromDoc(doc.id, doc.data());
+          final nextQty = item.quantity - sale.quantity;
+          if (nextQty >= 0) {
+            txn.update(doc.reference, FsInventory.toMap(item.copyWith(quantity: nextQty)));
+            final adj = StockAdjustment(
+              id: _uuid.v4(),
+              inventoryItemId: item.id,
+              itemDisplaySnapshot: item.displayName,
+              delta: -sale.quantity,
+              reason: 'Daily Sale: ${sale.id}',
+              date: DateTime.now(),
+            );
+            txn.set(_stock.doc(adj.id), FsStockAdjustment.toMap(adj));
+            
+            final metaRef = _meta.doc(item.id);
+            final metaSnap = await txn.get(metaRef);
+            final m = metaSnap.exists && metaSnap.data() != null
+                ? FsInventoryMeta.fromMap(metaSnap.data()!)
+                : InventoryMeta.empty;
+            txn.set(
+              metaRef,
+              FsInventoryMeta.toMap(
+                m.copyWith(lastSoldUnitPrice: sale.unitPrice),
+              ),
+            );
+          }
+        }
+      }
+    });
+  }
+
+  @override
+  Future<void> submitDailyCollection(DailyCollection collection) async {
+    await _dailyCollections.doc(collection.id).set(FsDailyCollection.toMap(collection));
   }
 }

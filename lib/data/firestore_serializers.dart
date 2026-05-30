@@ -9,6 +9,9 @@ import 'package:sorade/models/order_line.dart';
 import 'package:sorade/models/order_preset.dart';
 import 'package:sorade/models/revenue.dart';
 import 'package:sorade/models/stock_adjustment.dart';
+import 'package:sorade/models/user_role.dart';
+import 'package:sorade/models/daily_sale.dart';
+import 'package:sorade/models/daily_collection.dart';
 
 Timestamp? _toTs(dynamic v) {
   if (v == null) return null;
@@ -290,6 +293,91 @@ class FsStockAdjustment {
       delta: _readInt(m['delta']),
       reason: m['reason'] as String? ?? '',
       date: _readDate(m['date']),
+    );
+  }
+}
+
+class FsUserRole {
+  static Map<String, dynamic> toMap(UserRole role) {
+    return {
+      'name': role.name,
+      'email': role.email,
+      'role': role.role,
+      'createdAt': Timestamp.fromDate(role.createdAt),
+    };
+  }
+
+  static UserRole fromDoc(String id, Map<String, dynamic> m) {
+    return UserRole(
+      id: id,
+      name: m['name'] as String? ?? '',
+      email: m['email'] as String? ?? '',
+      role: m['role'] as String? ?? 'staff',
+      createdAt: _readDate(m['createdAt']),
+    );
+  }
+}
+
+class FsDailySale {
+  static Map<String, dynamic> toMap(DailySale sale) {
+    return {
+      'productName': sale.productName,
+      'category': sale.category,
+      'quantity': sale.quantity,
+      'unitPrice': sale.unitPrice,
+      'totalAmount': sale.totalAmount,
+      'paymentMethod': sale.paymentMethod,
+      'notes': sale.notes,
+      'soldBy': sale.soldBy,
+      'soldByName': sale.soldByName,
+      'createdAt': Timestamp.fromDate(sale.createdAt),
+    };
+  }
+
+  static DailySale fromDoc(String id, Map<String, dynamic> m) {
+    return DailySale(
+      id: id,
+      productName: m['productName'] as String? ?? '',
+      category: m['category'] as String? ?? '',
+      quantity: _readInt(m['quantity']),
+      unitPrice: _readDouble(m['unitPrice']),
+      totalAmount: _readDouble(m['totalAmount']),
+      paymentMethod: m['paymentMethod'] as String? ?? '',
+      notes: m['notes'] as String? ?? '',
+      soldBy: m['soldBy'] as String? ?? '',
+      soldByName: m['soldByName'] as String? ?? '',
+      createdAt: _readDate(m['createdAt']),
+    );
+  }
+}
+
+class FsDailyCollection {
+  static Map<String, dynamic> toMap(DailyCollection col) {
+    return {
+      'date': Timestamp.fromDate(col.date),
+      'cashAmount': col.cashAmount,
+      'upiAmount': col.upiAmount,
+      'cardAmount': col.cardAmount,
+      'otherAmount': col.otherAmount,
+      'totalCollection': col.totalCollection,
+      'submittedBy': col.submittedBy,
+      'submittedByName': col.submittedByName,
+      'createdAt': Timestamp.fromDate(col.createdAt),
+    };
+  }
+
+  static DailyCollection fromDoc(String id, Map<String, dynamic> m) {
+    return DailyCollection(
+      id: id,
+      date: _readDate(m['date']),
+      cashAmount: _readDouble(m['cashAmount']),
+      upiAmount: _readDouble(m['upiAmount']),
+      cardAmount: _readDouble(m['cardAmount']),
+      otherAmount: _readDouble(m['otherAmount']),
+      totalCollection: _readDouble(m['totalCollection']),
+      submittedBy: m['submittedBy'] as String? ?? '',
+      submittedByName: m['submittedByName'] as String? ?? '',
+      createdAt: _readDate(m['createdAt']),
     );
   }
 }

@@ -7,6 +7,9 @@ import 'package:sorade/models/order_line.dart';
 import 'package:sorade/models/order_preset.dart';
 import 'package:sorade/models/revenue.dart';
 import 'package:sorade/models/stock_adjustment.dart';
+import 'package:sorade/models/user_role.dart';
+import 'package:sorade/models/daily_sale.dart';
+import 'package:sorade/models/daily_collection.dart';
 
 class StockException implements Exception {
   StockException(this.message);
@@ -23,6 +26,10 @@ abstract class SoradeRepository {
   List<Expense> get expenses;
   List<OrderPreset> get orderPresets;
   List<StockAdjustment> get stockAdjustments;
+  
+  UserRole? get currentUserRole;
+  List<DailySale> get dailySales;
+  List<DailyCollection> get dailyCollections;
 
   InventoryMeta inventoryMetaFor(String inventoryItemId);
 
@@ -81,6 +88,10 @@ abstract class SoradeRepository {
   Future<bool> deleteRevenue(String id);
 
   Future<void> deleteExpense(String id);
+
+  Future<void> addDailySale(DailySale sale, {bool deductInventory = false});
+  
+  Future<void> submitDailyCollection(DailyCollection collection);
 
   /// Wire remote snapshot updates to [SoradeController.notifyListeners].
   void attachListener(void Function() onChanged) {}

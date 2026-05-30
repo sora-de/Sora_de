@@ -11,7 +11,9 @@ import 'package:sorade/models/order_line.dart';
 import 'package:sorade/models/order_preset.dart';
 import 'package:sorade/models/revenue.dart';
 import 'package:sorade/models/stock_adjustment.dart';
-
+import 'package:sorade/models/user_role.dart';
+import 'package:sorade/models/daily_sale.dart';
+import 'package:sorade/models/daily_collection.dart';
 class SoradeController extends ChangeNotifier {
   SoradeController(this._repo) {
     _repo.attachListener(notifyListeners);
@@ -34,6 +36,10 @@ class SoradeController extends ChangeNotifier {
   List<Expense> get expenses => _repo.expenses;
   List<OrderPreset> get orderPresets => _repo.orderPresets;
   List<StockAdjustment> get stockAdjustments => _repo.stockAdjustments;
+
+  UserRole? get currentUserRole => _repo.currentUserRole;
+  List<DailySale> get dailySales => _repo.dailySales;
+  List<DailyCollection> get dailyCollections => _repo.dailyCollections;
 
   List<InventoryItem> get lowStockItems =>
       inventoryItems.where((e) => e.isLowStock).toList();
@@ -190,6 +196,16 @@ class SoradeController extends ChangeNotifier {
 
   Future<void> deleteExpense(String id) async {
     await _repo.deleteExpense(id);
+    notifyListeners();
+  }
+
+  Future<void> addDailySale(DailySale sale, {bool deductInventory = false}) async {
+    await _repo.addDailySale(sale, deductInventory: deductInventory);
+    notifyListeners();
+  }
+
+  Future<void> submitDailyCollection(DailyCollection collection) async {
+    await _repo.submitDailyCollection(collection);
     notifyListeners();
   }
 }

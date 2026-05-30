@@ -1,11 +1,15 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sorade/screens/dashboard_screen.dart';
 import 'package:sorade/screens/finance_screen.dart';
 import 'package:sorade/screens/inventory_screen.dart';
 import 'package:sorade/screens/orders_screen.dart';
 import 'package:sorade/screens/reports_screen.dart';
 import 'package:sorade/screens/settings_screen.dart';
+import 'package:sorade/screens/daily_collection_staff_screen.dart';
+import 'package:sorade/screens/daily_collection_admin_screen.dart';
+import 'package:sorade/state/sorade_controller.dart';
 import 'package:sorade/widgets/local_data_banner.dart';
 
 class ShellScreen extends StatefulWidget {
@@ -18,19 +22,50 @@ class ShellScreen extends StatefulWidget {
 class _ShellScreenState extends State<ShellScreen> {
   int _index = 0;
 
-  static const _titles = [
-    'Dashboard',
-    'Inventory',
-    'Orders',
-    'Money',
-    'Reports',
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final controller = context.watch<SoradeController>();
+    final isAdmin = controller.currentUserRole?.isAdmin ?? true; // Default to admin while loading
+
+    final titles = isAdmin
+        ? ['Dashboard', 'Inventory', 'Orders', 'Money', 'Reports', 'Collections']
+        : ['Daily Sales', 'Inventory', 'Orders'];
+
+    final screens = isAdmin
+        ? const [
+            DashboardScreen(),
+            InventoryScreen(),
+            OrdersScreen(),
+            FinanceScreen(),
+            ReportsScreen(),
+            DailyCollectionAdminScreen(),
+          ]
+        : const [
+            DailyCollectionStaffScreen(),
+            InventoryScreen(),
+            OrdersScreen(),
+          ];
+
+    final destinations = isAdmin
+        ? const [
+            NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Home'),
+            NavigationDestination(icon: Icon(Icons.inventory_2_outlined), selectedIcon: Icon(Icons.inventory_2), label: 'Stock'),
+            NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
+            NavigationDestination(icon: Icon(Icons.payments_outlined), selectedIcon: Icon(Icons.payments), label: 'Money'),
+            NavigationDestination(icon: Icon(Icons.assessment_outlined), selectedIcon: Icon(Icons.assessment), label: 'Reports'),
+            NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Collections'),
+          ]
+        : const [
+            NavigationDestination(icon: Icon(Icons.point_of_sale_outlined), selectedIcon: Icon(Icons.point_of_sale), label: 'Sales'),
+            NavigationDestination(icon: Icon(Icons.inventory_2_outlined), selectedIcon: Icon(Icons.inventory_2), label: 'Stock'),
+            NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
+          ];
+
+    final activeIndex = _index >= screens.length ? 0 : _index;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(_titles[_index]),
+        title: Text(titles[activeIndex]),
         actions: [
           IconButton(
             tooltip: 'Account & settings',
@@ -57,48 +92,16 @@ class _ShellScreenState extends State<ShellScreen> {
           const Divider(height: 1),
           Expanded(
             child: IndexedStack(
-              index: _index,
-              children: const [
-                DashboardScreen(),
-                InventoryScreen(),
-                OrdersScreen(),
-                FinanceScreen(),
-                ReportsScreen(),
-              ],
+              index: activeIndex,
+              children: screens,
             ),
           ),
         ],
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
+        selectedIndex: activeIndex,
         onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.inventory_2_outlined),
-            selectedIcon: Icon(Icons.inventory_2),
-            label: 'Stock',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Orders',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.payments_outlined),
-            selectedIcon: Icon(Icons.payments),
-            label: 'Money',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.assessment_outlined),
-            selectedIcon: Icon(Icons.assessment),
-            label: 'Reports',
-          ),
-        ],
+        destinations: destinations,
       ),
     );
   }
