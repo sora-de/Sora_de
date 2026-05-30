@@ -10,6 +10,7 @@ import 'package:sorade/models/stock_adjustment.dart';
 import 'package:sorade/models/user_role.dart';
 import 'package:sorade/models/daily_sale.dart';
 import 'package:sorade/models/daily_collection.dart';
+import 'package:sorade/models/photobooth_print.dart';
 
 class StockException implements Exception {
   StockException(this.message);
@@ -31,6 +32,7 @@ abstract class SoradeRepository {
   List<DailySale> get dailySales;
   List<DailyCollection> get dailyCollections;
   List<UserRole> get allUsers;
+  List<PhotoboothPrint> get photoboothPrints;
 
   InventoryMeta inventoryMetaFor(String inventoryItemId);
 

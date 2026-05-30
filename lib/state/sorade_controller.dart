@@ -14,6 +14,7 @@ import 'package:sorade/models/stock_adjustment.dart';
 import 'package:sorade/models/user_role.dart';
 import 'package:sorade/models/daily_sale.dart';
 import 'package:sorade/models/daily_collection.dart';
+import 'package:sorade/models/photobooth_print.dart';
 class SoradeController extends ChangeNotifier {
   SoradeController(this._repo) {
     _repo.attachListener(notifyListeners);
@@ -41,6 +42,7 @@ class SoradeController extends ChangeNotifier {
   List<DailySale> get dailySales => _repo.dailySales;
   List<DailyCollection> get dailyCollections => _repo.dailyCollections;
   List<UserRole> get allUsers => _repo.allUsers;
+  List<PhotoboothPrint> get photoboothPrints => _repo.photoboothPrints;
 
   List<InventoryItem> get lowStockItems =>
       inventoryItems.where((e) => e.isLowStock).toList();

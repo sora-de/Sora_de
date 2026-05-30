@@ -52,3 +52,4 @@ app.*.map.json
 
 # Android Gradle build output (do not commit)
 /android/build/
+firebase_credentials.json

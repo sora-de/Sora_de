@@ -20,6 +20,7 @@ import 'package:sorade/models/stock_adjustment.dart';
 import 'package:sorade/models/user_role.dart';
 import 'package:sorade/models/daily_sale.dart';
 import 'package:sorade/models/daily_collection.dart';
+import 'package:sorade/models/photobooth_print.dart';
 import 'package:sorade/services/inventory_photo_storage.dart';
 import 'package:uuid/uuid.dart';
 
@@ -35,6 +36,7 @@ abstract final class _FsCollections {
   static const dailySales = 'daily_sales';
   static const dailyCollections = 'daily_collections';
   static const users = 'users';
+  static const photoboothPrints = 'photobooth_prints';
 }
 
 class FirestoreSoradeRepository extends SoradeRepository {
@@ -73,6 +75,8 @@ class FirestoreSoradeRepository extends SoradeRepository {
       _db.collection(_FsCollections.dailyCollections);
   CollectionReference<Map<String, dynamic>> get _allUsers =>
       _db.collection(_FsCollections.users);
+  CollectionReference<Map<String, dynamic>> get _photoboothPrints =>
+      _db.collection(_FsCollections.photoboothPrints);
 
   CollectionReference<Map<String, dynamic>> _purchases(String inventoryItemId) =>
       _inv.doc(inventoryItemId).collection(_FsCollections.inventoryPurchases);
@@ -87,6 +91,7 @@ class FirestoreSoradeRepository extends SoradeRepository {
   List<DailySale> _dailySalesList = [];
   List<DailyCollection> _dailyCollectionsList = [];
   List<UserRole> _allUsersList = [];
+  List<PhotoboothPrint> _photoboothPrintsList = [];
   UserRole? _currentUserRole;
   bool _attachedOtherListeners = false;
 
@@ -188,6 +193,15 @@ class FirestoreSoradeRepository extends SoradeRepository {
           _onChanged?.call();
         }, onError: (e) => debugPrint('Error in _allUsers listener: $e')),
       );
+      _subs.add(
+        _photoboothPrints.snapshots().listen((s) {
+          _photoboothPrintsList = s.docs
+              .map((d) => FsPhotoboothPrint.fromDoc(d.id, d.data()))
+              .toList()
+            ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          _onChanged?.call();
+        }, onError: (e) => debugPrint('Error in _photoboothPrints listener: $e')),
+      );
     }
     _subs.add(
       _presets.snapshots().listen((s) {
@@ -280,6 +294,9 @@ class FirestoreSoradeRepository extends SoradeRepository {
 
   @override
   List<UserRole> get allUsers => List.unmodifiable(_allUsersList);
+
+  @override
+  List<PhotoboothPrint> get photoboothPrints => List.unmodifiable(_photoboothPrintsList);
 
   @override
   InventoryMeta inventoryMetaFor(String inventoryItemId) {

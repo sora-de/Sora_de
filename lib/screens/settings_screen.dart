@@ -383,6 +383,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   const SizedBox(height: 28),
                   Text(
+                    'Photobooth Stats',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: BrandColors.primaryGreen,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Builder(builder: (context) {
+                        final prints = controller.photoboothPrints;
+                        final today = DateTime.now();
+                        int printsToday = 0;
+                        int totalPrints = 0;
+                        for (var p in prints) {
+                          totalPrints += p.sheets;
+                          if (p.timestamp.year == today.year &&
+                              p.timestamp.month == today.month &&
+                              p.timestamp.day == today.day) {
+                            printsToday += p.sheets;
+                          }
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: CircleAvatar(
+                                backgroundColor: cs.primaryContainer,
+                                child: Icon(Icons.print, color: cs.onPrimaryContainer),
+                              ),
+                              title: const Text('Prints Today'),
+                              subtitle: Text('$printsToday strips'),
+                            ),
+                            const Divider(height: 1),
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: CircleAvatar(
+                                backgroundColor: cs.primaryContainer,
+                                child: Icon(Icons.print_outlined, color: cs.onPrimaryContainer),
+                              ),
+                              title: const Text('Total Prints (All Time)'),
+                              subtitle: Text('$totalPrints strips'),
+                            ),
+                          ],
+                        );
+                      }),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Text(
                     'User Management',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,

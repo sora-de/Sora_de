@@ -12,6 +12,7 @@ import 'package:sorade/models/stock_adjustment.dart';
 import 'package:sorade/models/user_role.dart';
 import 'package:sorade/models/daily_sale.dart';
 import 'package:sorade/models/daily_collection.dart';
+import 'package:sorade/models/photobooth_print.dart';
 
 Timestamp? _toTs(dynamic v) {
   if (v == null) return null;
@@ -380,6 +381,29 @@ class FsDailyCollection {
       submittedBy: m['submittedBy'] as String? ?? '',
       submittedByName: m['submittedByName'] as String? ?? '',
       createdAt: _readDate(m['createdAt']),
+    );
+  }
+}
+
+class FsPhotoboothPrint {
+  static Map<String, dynamic> toMap(PhotoboothPrint printEvent) {
+    return {
+      'boothId': printEvent.boothId,
+      'source': printEvent.source,
+      'mode': printEvent.mode,
+      'sheets': printEvent.sheets,
+      'timestamp': Timestamp.fromDate(printEvent.timestamp),
+    };
+  }
+
+  static PhotoboothPrint fromDoc(String id, Map<String, dynamic> m) {
+    return PhotoboothPrint(
+      id: id,
+      boothId: m['boothId'] as String? ?? '',
+      source: m['source'] as String? ?? '',
+      mode: m['mode'] as String? ?? '',
+      sheets: _readInt(m['sheets']),
+      timestamp: _readDate(m['timestamp']),
     );
   }
 }
